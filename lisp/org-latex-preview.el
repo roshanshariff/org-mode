@@ -1280,8 +1280,7 @@ FRAGMENTS will be placed in order, wrapped within a
 
 The path of the created LaTeX file is returned."
   (let ((tex-temp-name
-         (expand-file-name (concat (make-temp-name "org-tex-") ".tex")
-                           default-directory))
+         (expand-file-name (concat (make-temp-name "org-tex-") ".tex")))
         (header
          (concat
           (or (plist-get processing-info :latex-header)
@@ -1325,7 +1324,6 @@ The path of the created LaTeX file is returned."
          (tex-command-spec
           `((?o . ,(shell-quote-argument temporary-file-directory))
             (?b . ,(shell-quote-argument (file-name-base texfile)))
-            (?B . ,(shell-quote-argument (file-name-sans-extension texfile)))
             (?f . ,(shell-quote-argument texfile))))
          (tex-formatted-command
           (split-string-shell-command
@@ -1333,7 +1331,6 @@ The path of the created LaTeX file is returned."
     (list 'org-async-task
           tex-formatted-command
           :buffer tex-process-buffer
-          :dir temporary-file-directory
           :info extended-info
           :filter #'org-latex-preview--latex-preview-filter
           :failure "LaTeX compilation for preview failed! (error code %d)")))
@@ -1417,7 +1414,9 @@ The path of the created LaTeX file is returned."
 
 (defun org-latex-preview--generic-callback (_exit-code _stdout extended-info)
   "Move and delete files after image creation, in accords with EXTENDED-INFO."
-  (let* ((basename (file-name-sans-extension (plist-get extended-info :texfile)))
+  (let* ((texfile (plist-get extended-info :texfile))
+         (outputs-no-ext (expand-file-name (file-name-base texfile)
+                                           temporary-file-directory))
          (images
           (file-expand-wildcards
            (concat outputs-no-ext "*." (plist-get extended-info :image-output-type))
@@ -1640,8 +1639,10 @@ reported values in pt (8.899pt).")
 Any matches found will be matched against the fragments recorded in
 EXTENDED-INFO, and displayed in the buffer."
   (let ((dvipng-depth-height-re "depth=\\([0-9]+\\) height=\\([0-9]+\\)")
-        (texfile-no-ext (file-name-sans-extension
-                         (plist-get extended-info :texfile)))
+        (outputs-no-ext (expand-file-name
+                         (file-name-base
+                          (plist-get extended-info :texfile))
+                         temporary-file-directory))
         (fragments (plist-get extended-info :fragments))
         fragments-to-show page-info-end)
     (while (search-forward "]" nil t)
@@ -1652,9 +1653,7 @@ EXTENDED-INFO, and displayed in the buffer."
             (let* ((page (string-to-number (match-string 1)))
                    (fragment-info (nth (1- page) fragments)))
               (plist-put fragment-info :path
-                         (format "%s-%09d.png"
-                                 texfile-no-ext
-                                 page))
+                         (format "%s-%09d.png" outputs-no-ext page))
               (when (re-search-forward dvipng-depth-height-re page-info-end t)
                 (let ((depth (* (string-to-number (match-string 1))
                                 org-latex-preview--dvipng-dpi-pt-factor))
