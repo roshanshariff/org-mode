@@ -4405,8 +4405,9 @@ Return PDF file's name."
 TEXFILE is the name of the file being compiled.  Processing is
 done through the command specified in `org-latex-pdf-process',
 which see.  Output is redirected to \"*Org PDF LaTeX Output*\"
-buffer.  When the process is a shell command (and not a function),
-it will be run asyncronously via `org-async-call'.
+buffer.  When the process is a shell command (and not a
+function), it will be run asyncronously via `org-async-call',
+unless the current session is `noninteractive'.
 
 When optional argument SNIPPET is non-nil, TEXFILE is a temporary
 file used to preview a LaTeX snippet.  In this case, do not
@@ -4445,28 +4446,34 @@ produced."
                                     (file-name-directory texfile))))
     (with-current-buffer log-buf
       (erase-buffer))
-    (if (functionp process)
+    (if noninteractive
         (progn
           (org-compile-file texfile process "pdf"
                             (format "See %S for details" log-buf-name)
                             log-buf spec)
           (org-latex-compile--postprocess outfile log-buf snippet))
-      (let ((failure-msg (format "File %S wasn't produced (exit code %%d).  See %%s for details."
-                                 outfile))
-            (async-call-spec))
-        (dolist (cmd (reverse (org-compile-file-commands
-                               texfile process "pdf" spec)))
-          (setq async-call-spec
-                (list cmd
-                      :buffer log-buf
-                      :success
-                      (if (null async-call-spec)
-                          (lambda (_ buf _)
-                            (org-latex-compile--postprocess outfile buf snippet))
-                        async-call-spec)
-                      :failure failure-msg)))
-        (message "Compiling %s..." texfile)
-        (apply #'org-async-call async-call-spec)))
+      (if (functionp process)
+          (progn
+            (org-compile-file texfile process "pdf"
+                              (format "See %S for details" log-buf-name)
+                              log-buf spec)
+            (org-latex-compile--postprocess outfile log-buf snippet))
+        (let ((failure-msg (format "File %S wasn't produced (exit code %%d).  See %%s for details."
+                                   outfile))
+              (async-call-spec))
+          (dolist (cmd (reverse (org-compile-file-commands
+                                 texfile process "pdf" spec)))
+            (setq async-call-spec
+                  (list cmd
+                        :buffer log-buf
+                        :success
+                        (if (null async-call-spec)
+                            (lambda (_ buf _)
+                              (org-latex-compile--postprocess outfile buf snippet))
+                          async-call-spec)
+                        :failure failure-msg)))
+          (message "Compiling %s..." texfile)
+          (apply #'org-async-call async-call-spec))))
     ;; Return output file name.
     outfile))
 
