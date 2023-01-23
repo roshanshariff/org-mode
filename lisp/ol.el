@@ -1065,6 +1065,9 @@ and then used in capture templates."
 	   if store-func
 	   collect store-func))
 
+(defvar org-link--abbrev-functions nil
+  "Alist of abbrev link expressions and functions.")
+
 (defun org-link-expand-abbrev (link)
   "Replace link abbreviations in LINK string.
 Abbreviations are defined in `org-link-abbrev-alist'."
@@ -1079,14 +1082,27 @@ Abbreviations are defined in `org-link-abbrev-alist'."
 	(setq rpl (cdr as))
 	(cond
 	 ((symbolp rpl) (funcall rpl tag))
-	 ((string-match "%(\\([^)]+\\))" rpl)
+	 ((string-match "%(\\([^) ]+\\))" rpl) ; %(function)
 	  (replace-match
 	   (save-match-data
 	     (funcall (intern-soft (match-string 1 rpl)) tag))
 	   t t rpl))
-	 ((string-match "%s" rpl) (replace-match (or tag "") t t rpl))
-	 ((string-match "%h" rpl)
-	  (replace-match (url-hexify-string (or tag "")) t t rpl))
+         ((string-match "%(\\(.+\\))" rpl) ; %(sexpr using tag)
+          (replace-match
+           (save-match-data
+             (funcall (or (cdr (assoc (match-string 1 rpl)
+                                      org-link--abbrev-functions))
+                          (cdar (push (cons (match-string 1 rpl)
+                                            (eval (read (format
+                                                         "(lambda (tag) (%s))"
+                                                         (match-string 1 rpl)))))
+                                      org-link--abbrev-functions)))
+                      tag))
+           t t rpl))
+	 ((string-match-p "%[0-<>^_]?[0-9]*\\(?:\\.[0-9]+\\)?s" rpl)
+          (format-spec rpl `((?s . ,(or tag "")))))
+	 ((string-match-p "%[0-<>^_]?[0-9]*\\(?:\\.[0-9]+\\)?h" rpl)
+          (format-spec rpl `((?h . ,(url-hexify-string (or tag ""))))))
 	 (t (concat rpl tag)))))))
 
 (defun org-link-open (link &optional arg)
