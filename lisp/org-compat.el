@@ -232,6 +232,18 @@ removed."
                     default)))
      ": ")))
 
+(if (fboundp 'ensure-list)
+    (defalias 'org-ensure-list #'ensure-list)
+  (defun org-ensure-list (object)
+    "Return OBJECT as a list.
+If OBJECT is already a list, return OBJECT itself.  If it's
+not a list, return a one-element list containing OBJECT.
+
+Compatability substitute for `ensure-list' in Emacs 28."
+    (if (listp object)
+        object
+      (list object))))
+
 
 ;;; Emacs < 27.1 compatibility
 
