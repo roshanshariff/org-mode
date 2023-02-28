@@ -34,6 +34,7 @@
 (require 'org-macs)
 (require 'ox)
 (require 'table nil 'noerror)
+(require 'ox-mathml)
 
 ;;; Define Backend
 
@@ -3800,121 +3801,148 @@ INFO is the communication channel."
 
 (defun org-odt--translate-latex-fragments (tree _backend info)
   (let ((processing-type (plist-get info :with-latex))
-	(preview-symbols (mapcar #'car org-preview-latex-process-alist))
-	(count 0)
+        (count 0)
         (warning nil))
-    ;; Normalize processing-type to one of mathml, verbatim, or a
-    ;; symbol in org-preview-latex-process-alist.  If the desired
-    ;; converter is not available, force verbatim processing.
-    (pcase processing-type
-      ((or 't 'mathml)
-       (if (and (fboundp 'org-format-latex-mathml-available-p)
-		(org-format-latex-mathml-available-p))
-	   (setq processing-type 'mathml)
-         (setq warning "`org-odt-with-latex': LaTeX to MathML converter not available.  Falling back to verbatim.")
-	 (setq processing-type 'verbatim)))
-      ((and s (guard (memq s preview-symbols)))
-       (let* ((ext-commands (plist-get
-                             (cdr (assq s org-preview-latex-process-alist))
-                             :programs))
-              (ext-commands-available
-               (seq-reduce (lambda (result cmd)
-                             (and result
-                                  (not
-                                   (null
-                                    (org-check-external-command cmd "" t)))))
-                           ext-commands t)))
-         (unless ext-commands-available
-           (setq warning "`org-odt-with-latex': LaTeX to image converter not available.  Falling back to verbatim.")
-           (setq processing-type 'verbatim))))
-      ('verbatim) ;; nothing to do
-      (_
-       (setq warning "`org-odt-with-latex': Unknown LaTeX option.  Forcing verbatim.")
-       (setq processing-type 'verbatim)))
-
-    ;; Display warning if the selected PROCESSING-TYPE is not
-    ;; available, but there are fragments to be converted.
-    (when warning
-      (org-element-map tree '(latex-fragment latex-environment)
-        (lambda (_) (warn warning))
-        info 'first-match nil t))
-
-    ;; Store normalized value for later use.
-    (when (plist-get info :with-latex)
-      (plist-put info :with-latex processing-type))
-    (message "Formatting LaTeX using %s" processing-type)
-
-    ;; Convert `latex-fragment's and `latex-environment's.
-    (when (memq processing-type (append '(mathml) preview-symbols))
-      (org-element-map tree '(latex-fragment latex-environment)
-	(lambda (latex-*)
-	  (cl-incf count)
-	  (let* ((latex-frag (org-element-property :value latex-*))
-		 (input-file (plist-get info :input-file))
-                 (is-image (memq processing-type preview-symbols))
-		 (cache-dir (file-name-directory input-file))
-		 (cache-subdir (concat
-				(if is-image
-				    org-preview-latex-image-directory
-				  org-latex-mathml-directory)
-				(file-name-sans-extension
-				 (file-name-nondirectory input-file))))
-		 (display-msg
-		  (if is-image
-		      (format "Creating LaTeX image %d..." count)
-		    (format "Creating MathML snippet %d..." count)))
-		 ;; Get an Org-style link to image or the MathML file.
-		 (link
-		  (with-temp-buffer
-		    (insert latex-frag)
-                    (delay-mode-hooks (let ((org-inhibit-startup t)) (org-mode)))
-		    ;; When converting to an image, make sure to copy
-		    ;; all LaTeX header specifications from the Org
-		    ;; source.
-		    (unless (eq processing-type 'mathml)
-		      (let ((h (plist-get info :latex-header)))
-			(when h
-			  (insert "\n"
-				  (replace-regexp-in-string
-				   "^" "#+LATEX_HEADER: " h)))))
-                    (org-latex-preview-replace-fragments
-                     cache-subdir processing-type cache-dir display-msg)
-		    (goto-char (point-min))
-		    (skip-chars-forward " \t\n")
-		    (org-element-link-parser))))
-	    (if (not (org-element-type-p link 'link))
-		(message "LaTeX Conversion failed.")
-	      ;; Conversion succeeded.  Parse above Org-style link to
-	      ;; a `link' object.
-	      (let ((replacement
-		     (cl-case (org-element-type latex-*)
-		       ;;LaTeX environment.  Mimic a "standalone image
-		       ;; or formula" by enclosing the `link' in
-		       ;; a `paragraph'.  Copy over original
-		       ;; attributes, captions to the enclosing
-		       ;; paragraph.
-		       (latex-environment
-			(org-element-adopt
-			    (list 'paragraph
-			          (list :style "OrgFormula"
-				        :name
-				        (org-element-property :name latex-*)
-				        :caption
-				        (org-element-property :caption latex-*)))
-			  link))
-		       ;; LaTeX fragment.  No special action.
-		       (latex-fragment link))))
-		;; Note down the object that link replaces.
-		(org-element-put-property replacement :replaces
-					  (list (org-element-type latex-*)
-						(list :value latex-frag)))
-		;; Restore blank after initial element or object.
-		(org-element-put-property
-		 replacement :post-blank
-		 (org-element-property :post-blank latex-*))
-		;; Replace now.
-		(org-element-set latex-* replacement)))))
-	info nil nil t)))
+    ;; MathML will be handled seperately.
+    (if (and (memq processing-type '(t mathml))
+             (fboundp 'org-format-latex-mathml-available-p)
+             (org-format-latex-mathml-available-p)
+             (plist-put info :with-latex 'mathml))
+        (org-element-map tree '(latex-fragment latex-environment)
+          (lambda (latex)
+            (cl-incf count)
+            (if-let ((latex-frag (org-element-property :value latex))
+                     (path (org-mathml-convert-latex-cached latex-frag))
+                     (link (list 'link
+                                 (list :type "file"
+                                       :path path
+                                       :format 'bracket
+                                       :raw-link (format "file:%s" path))))
+                     (replacement
+                      (if (eq (org-element-type latex) 'latex-environment)
+                          ;;LaTeX environment.  Mimic a "standalone image
+                          ;; or formula" by enclosing the `link' in
+                          ;; a `paragraph'.  Copy over original
+                          ;; attributes, captions to the enclosing
+                          ;; paragraph.
+                          (org-element-adopt-elements
+                              (list 'paragraph
+                                    (list :style "OrgFormula"
+                                          :name
+                                          (org-element-property :name latex)
+                                          :caption
+                                          (org-element-property :caption latex)))
+                            link)
+                        link)))
+                (progn
+                  ;; Note down the object that link replaces.
+                  (org-element-put-property replacement :replaces
+                                            (list (org-element-type latex)
+                                                  (list :value latex-frag)))
+                  ;; Restore blank after initial element or object.
+                  (org-element-put-property
+                   replacement :post-blank
+                   (org-element-property :post-blank latex))
+                  ;; Replace now.
+                  (org-element-set-element latex replacement))
+              (setq warning "Conversion of LaTeX to MathML failed.  Falling back to verbatim.")))
+          info nil nil)
+      ;; Normalize processing-type to one of dvipng or verbatim.
+      ;; If the desired converter is not available, force verbatim
+      ;; processing.
+      (cl-case processing-type
+        ((t mathml)
+         (setq warning "LaTeX to MathML converter not available.  Falling back to verbatim."
+               processing-type 'verbatim))
+        ((dvipng imagemagick)
+         (unless (and (org-check-external-command "latex" "" t)
+                      (org-check-external-command
+                       (if (eq processing-type 'dvipng) "dvipng" "convert") "" t))
+           (setq warning "LaTeX to PNG converter not available.  Falling back to verbatim."
+                 processing-type 'verbatim)))
+        (otherwise
+         (setq warning "Unknown LaTeX option.  Forcing verbatim."
+               processing-type 'verbatim)))
+      ;; Display warning if the selected PROCESSING-TYPE is not
+      ;; available, but there are fragments to be converted.
+      (when warning
+        (org-element-map tree '(latex-fragment latex-environment)
+          (lambda (_) (warn warning))
+          info 'first-match nil t))
+      ;; Store normalized value for later use.
+      (when (plist-get info :with-latex)
+        (plist-put info :with-latex processing-type))
+      (message "Formatting LaTeX using %s" processing-type)
+      ;; Convert `latex-fragment's and `latex-environment's.
+      (when (memq processing-type '(dvipng imagemagick))
+        (org-element-map tree '(latex-fragment latex-environment)
+          (lambda (latex-*)
+            (cl-incf count)
+            (let* ((latex-frag (org-element-property :value latex-*))
+                   (input-file (plist-get info :input-file))
+                   (cache-dir (file-name-directory input-file))
+                   (cache-subdir (concat
+                                  (cl-case processing-type
+                                    ((dvipng imagemagick)
+                                     org-preview-latex-image-directory)
+                                    (t org-latex-mathml-directory))
+                                  (file-name-sans-extension
+                                   (file-name-nondirectory input-file))))
+                   (display-msg
+                    (cl-case processing-type
+                      ((dvipng imagemagick)
+                       (format "Creating LaTeX Image %d..." count))))
+                   ;; Get an Org-style link to PNG image.
+                   (link
+                    (with-temp-buffer
+                      (insert latex-frag)
+                      (delay-mode-hooks (let ((org-inhibit-startup t)) (org-mode)))
+                      ;; When converting to a PNG image, make sure to
+                      ;; copy all LaTeX header specifications from the
+                      ;; Org source.
+                      (let ((h (plist-get info :latex-header)))
+                        (when h
+                          (insert "\n"
+                                  (replace-regexp-in-string
+                                   "^" "#+LATEX_HEADER: " h))))
+                      (org-latex-preview-replace-fragments
+                       cache-subdir processing-type cache-dir display-msg)
+                      (goto-char (point-min))
+                      (skip-chars-forward " \t\n")
+                      (org-element-link-parser))))
+              (if (not (eq 'link (org-element-type link)))
+                  (message "LaTeX Conversion failed.")
+                ;; Conversion succeeded.  Parse above Org-style link to
+                ;; a `link' object.
+                (let ((replacement
+                       (cl-case (org-element-type latex-*)
+                         ;;LaTeX environment.  Mimic a "standalone image
+                         ;; or formula" by enclosing the `link' in
+                         ;; a `paragraph'.  Copy over original
+                         ;; attributes, captions to the enclosing
+                         ;; paragraph.
+                         (latex-environment
+                          (org-element-adopt-elements
+                              (list 'paragraph
+                                    (list :style "OrgFormula"
+                                          :name
+                                          (org-element-property :name latex-*)
+                                          :caption
+                                          (org-element-property :caption latex-*)))
+                            link))
+                         ;; LaTeX fragment.  No special action.
+                         (latex-fragment link))))
+                  ;; Note down the object that link replaces.
+                  (org-element-put-property replacement :replaces
+                                            (list (org-element-type latex-*)
+                                                  (list :value latex-frag)))
+                  ;; Restore blank after initial element or object.
+                  (org-element-put-property
+                   replacement :post-blank
+                   (org-element-property :post-blank latex-*))
+                  ;; Replace now.
+                  (org-element-set-element latex-* replacement)))))
+          info nil nil t))))
   tree)
 
 
@@ -4245,7 +4273,7 @@ MathML source to kill ring depending on the value of
 	    (save-buffer-coding-system 'utf-8))
        (set-buffer buffer)
        (set-buffer-file-coding-system coding-system-for-write)
-       (let ((mathml (org-create-math-formula latex-frag)))
+       (let ((mathml (org-mathml-convert-latex-cached latex-frag)))
 	 (unless mathml (error "No Math formula created"))
 	 (insert mathml)
 	 ;; Add MathML to kill ring, if needed.
