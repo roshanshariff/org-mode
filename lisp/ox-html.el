@@ -3028,7 +3028,11 @@ CONTENTS is nil.  INFO is a plist holding contextual information."
   "Make sure that appropriate preview images exist for all LaTeX
 TODO."
   (when (assq (plist-get info :with-latex) org-latex-preview-process-alist)
-    (let* ((elements
+    (let* ((latex-preamble
+            (or org-latex-preview--preamble-content
+              (setq org-latex-preview--preamble-content
+                    (org-latex-preview--get-preamble))))
+           (elements
             (org-element-map parse-tree
                 '(latex-fragment latex-environment)
               #'identity
@@ -3055,7 +3059,7 @@ TODO."
                     (bg (plist-get html-options :background))
                     (number (car (setq numbering-offsets (cdr numbering-offsets))))
                     (hash (org-latex-preview--hash
-                           processing-type value imagetype fg bg number))
+                            processing-type latex-preamble value imagetype fg bg number))
                     (options (org-combine-plists
                               org-latex-preview-options
                               html-options
@@ -3077,7 +3081,8 @@ TODO."
           (apply #'org-async-wait-for
                  (org-latex-preview--create-image-async
                   processing-type
-                  (nreverse fragment-info)))))
+                  (nreverse fragment-info)
+                  :latex-preamble latex-preamble))))
       (plist-put info :html-latex-preview-hash-table element-hash-table)
       nil)))
 
