@@ -946,6 +946,11 @@ Each entry of ENTRIES should be a list of 2-3 items, either
   (BEG END VALUE)
 Where BEG and END are the positions in the buffer, and the LaTeX previewed
 is either the substring between BEG and END or (when provided) VALUE."
+  (unless latex-preamble
+    (setq latex-preamble
+          (or org-latex-preview--preamble-content
+              (setq org-latex-preview--preamble-content
+                    (org-latex-preview--get-preamble)))))
   (let* ((processing-info
           (cdr (assq processing-type org-latex-preview-process-alist)))
          (imagetype (or (plist-get processing-info :image-output-type) "png"))
@@ -959,7 +964,7 @@ is either the substring between BEG and END or (when provided) VALUE."
                      (`(,fg ,bg) (org-latex-preview--colors-around beg end))
                      (number (car (setq numbering-offsets (cdr numbering-offsets))))
                      (hash (org-latex-preview--hash
-                            processing-type value imagetype fg bg number))
+                            processing-type latex-preamble value imagetype fg bg number))
                      (options (org-combine-plists
                                org-latex-preview-options
                                (list :foreground fg
@@ -1028,7 +1033,7 @@ Faces in `org-latex-preview--ignored-faces' are ignored."
    ((symbolp (car face)) ; Spec like (org-level-1 default).
     (face-attribute (car face) attr nil (append (cdr face) '(default))))))
 
-(defun org-latex-preview--hash (processing-type string imagetype fg bg &optional number)
+(defun org-latex-preview--hash (processing-type preamble string imagetype fg bg &optional number)
   "Return a SHA1 hash for referencing LaTeX fragments when previewing them.
 
 PROCESSING-TYPE is the type of process used to create the
@@ -1046,9 +1051,7 @@ image.
 NUMBER is the equation number that should be used, if applicable."
   (sha1 (prin1-to-string
          (list processing-type
-               org-latex-preview-preamble
-               org-latex-default-packages-alist
-               org-latex-packages-alist
+               preamble
                org-latex-preview-options
                string
                (if (equal imagetype "svg")
@@ -1362,10 +1365,7 @@ FRAGMENTS will be placed in order, wrapped within a
 The path of the created LaTeX file is returned."
   (let* ((header
           (concat
-           (or (plist-get processing-info :latex-header)
-               org-latex-preview--preamble-content
-               (setq org-latex-preview--preamble-content
-                     (org-latex-preview--get-preamble)))
+           (plist-get processing-info :latex-header)
            (let ((w org-latex-preview-width))
              (cond
               ((stringp w)
@@ -2026,6 +2026,7 @@ the *entire* preview cache will be cleared, and `org-persist-gc' run."
           (org-latex-preview--remove-cached
            (org-latex-preview--hash
             org-latex-preview-default-process
+            org-latex-preview--preamble-content
             value imagetype fg bg number))))
       (message "Cleared LaTeX preview cache for %s."
                (if (or beg end) "region" "buffer")))))
