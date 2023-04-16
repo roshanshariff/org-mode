@@ -239,6 +239,61 @@ There are three recognised value symbols:
           (const :tag "Fringe marker" fringe)
           (const :tag "Processing face" face)))
 
+(defcustom org-latex-preview-auto-blacklist nil
+  "List of movement commands that will not cause previews to be
+revealed when using `org-latex-preview-auto-mode'."
+  :type '(repeat symbol)
+  :package-version '(Org . "9.7")
+  :group 'org-latex-preview)
+
+(defcustom org-latex-preview-process-finish-functions nil
+  "Abnormal hook run after preview generation.
+
+Each function in this hook is called with three arguments:
+
+- The exit-code of the preview generation process. More
+  specifically, this is the exit-code of the image-converter, the
+  final process in the chain of processes that generates a LaTeX
+  preview image.
+
+- The process buffer.
+
+- The processing-info plist, containing the state of the LaTeX
+  preview process. See `org-latex-preview--create-image-async'
+  for details.
+
+This hook can be used for introspection of or additional
+processing after the LaTeX preview process."
+  :group 'org-latex-preview
+  :type 'hook)
+
+(defcustom org-latex-preview-update-overlay-functions nil
+  "Abnormal hook run after a preview-overlay is updated.
+
+Each function in this hook is called with one argument, the
+overlay that was updated."
+  :group 'org-latex-preview
+  :type 'hook)
+
+(defcustom org-latex-preview-close-hook nil
+  "Hook run after placing a LaTeX preview image.
+
+This hook typically runs when the cursor is moved out of a LaTeX
+fragment or environment with `org-latex-preview-auto-mode'
+active, causing the display of text contents to be replaced by
+the corresponding preview image."
+  :group 'org-latex-preview
+  :type 'hook)
+(defcustom org-latex-preview-open-hook nil
+  "Hook run after hiding a LaTeX preview image.
+
+This hook typically runs when the cursor is moved into a LaTeX
+fragment or environment with `org-latex-preview-auto-mode'
+active, causing the display of the preview image to be replaced
+by the corresponding LaTeX fragment text."
+  :group 'org-latex-preview
+  :type 'hook)
+
 (defface org-latex-preview-processing-face '((t :inherit shadow))
   "Face applied to LaTeX fragments for which a preview is being generated.
 
@@ -655,8 +710,10 @@ If an org-latex-overlay is already present, nothing is done."
 If there is a latex preview image overlay at point, hide the
 image and display its text."
   (dolist (ov (overlays-at (point)))
-    (when (eq (overlay-get ov 'org-overlay-type)
-              'org-latex-overlay)
+    (when (and (eq (overlay-get ov 'org-overlay-type)
+                   'org-latex-overlay)
+               (not (memq this-command
+                          org-latex-preview-auto-blacklist)))
       (overlay-put ov 'display nil)
       (overlay-put ov 'view-text t)
       (when-let ((f (overlay-get ov 'face)))
