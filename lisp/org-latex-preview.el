@@ -959,14 +959,19 @@ updated no more than once in this interval of time."
                  (and (eq (car props) 'org-latex-overlay)
                       (cdr props)))))
        (end (overlay-end ov)))
-    (let ((latex-env-p (progn
-                         (unless org-latex-preview-live--element-type
-                           (let* ((elm (org-element-context))
-                                  (elm-type (org-element-type elm)))
-                             (setq org-latex-preview-live--element-type
-                                   elm-type)))
-                         (eq org-latex-preview-live--element-type
-                             'latex-environment))))
+    (let ((latex-env-p
+           (progn
+             (unless org-latex-preview-live--element-type
+               (let* ((elm (org-element-context)))
+                 ;; Treat \[ ... \] as a latex-environment for the
+                 ;; purposes of live-previews.
+                 (setq org-latex-preview-live--element-type
+                       (or (and (string-prefix-p
+                                 "\\[" (org-element-property :value elm))
+                                'latex-environment)
+                           (org-element-type elm)))))
+             (eq org-latex-preview-live--element-type
+                 'latex-environment))))
       (when (or latex-env-p org-latex-preview-live-preview-fragments)
         (when (eq org-latex-preview-live-display-type 'buffer)
           (unless (overlay-get ov 'after-string)
@@ -1004,7 +1009,8 @@ updated no more than once in this interval of time."
 ;; TODO: Replace with `org-latex-preview-live--update-overlay-run',
 ;; which see.
 (defun org-latex-preview-live--update-overlay (ov)
-  (when (memq ov (overlays-at (point)))
+  (when (and (memq ov (overlays-at (point)))
+             (overlay-get ov 'view-text))
     (if (or (overlay-get ov 'after-string)
             (eq org-latex-preview-live-display-type
                 'eldoc))
@@ -1017,11 +1023,15 @@ updated no more than once in this interval of time."
   ";TODO: "
   (when (and (equal major-mode (org-src-get-lang-mode "latex"))
              (buffer-local-value 'org-latex-preview-auto-mode
-                                 (marker-buffer org-src--beg-marker)))
+                                 (marker-buffer org-src--beg-marker))
+             (equal
+              (buffer-local-value 'org-latex-preview-auto-generate
+                                  (marker-buffer org-src--beg-marker))
+              'live))
     (let* ((org-buf (marker-buffer org-src--beg-marker))
            (src-buf (current-buffer))
            (org-buf-visible-p (window-live-p (get-buffer-window org-buf)))
-           (preamble (org-latex-preview--get-preamble org-buf))
+           (preamble)
            (element (org-element-context))
            ;; Do not use (org-element-property :begin element) to
            ;; find the bounds -- this is fragile under typos.
@@ -1040,7 +1050,10 @@ updated no more than once in this interval of time."
                       (and (eq (car props) 'org-latex-overlay)
                            (cdr props))))
           (org-latex-preview-live--clearout orig-ov)
-          (setq ov (copy-overlay orig-ov))
+          (setq ov (copy-overlay orig-ov)
+                preamble (or org-latex-preview--preamble-content
+                             (setq org-latex-preview--preamble-content
+                                   (org-latex-preview--get-preamble))))
           (overlay-put ov 'view-text t)
           (move-overlay ov beg end src-buf))
         (org-latex-preview-auto--close-previous-overlay))
