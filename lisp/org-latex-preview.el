@@ -348,15 +348,32 @@ This requires the LaTeX package \"mylatexformat\" to be installed."
   :type 'boolean)
 
 (defcustom org-latex-preview-auto-generate t
-  "Whether `org-latex-preview-auto-mode' should apply to new fragments.
+  "Whether `org-latex-preview-auto-mode' should apply to new and edited fragments.
 
-When non-nil, newly inserted/typed LaTeX fragments and
-environments will be automatically previewed.  Otherwise, only
-existing LaTeX previews will be automatically hidden/shown on
-cursor movement and regenerated after edits."
+When `org-latex-preview-auto-mode' is on, existing LaTeX previews
+will be automatically hidden/shown on cursor movement and
+regenerated after edits.  This option controls how newly inserted
+and edited fragments are previewed.
+
+The following values are supported:
+
+- t: Generate previews for newly inserted fragments.
+
+- nil: Do not generate previews for newly inserted fragments.
+
+- live: (symbol) same as t, but also update previews for existing
+  fragments continuously with each keystroke.  These live
+  previews are shown according to
+  `org-latex-preview-live-display-type', which see.
+
+Note that existing previews are always updated after the cursor
+moves out of them."
   :group 'org-latex
   :package-version '(Org . "9.7")
-  :type 'boolean)
+  :type '(choice
+          (const :tag "Auto-generate" t)
+          (const :tag "Don't auto-generate" nil)
+          (const :tag "Auto-generate continuously" live)))
 
 (defconst org-latex-preview--tentative-math-re
   "\\$\\|\\\\[([]\\|^[ \t]*\\\\begin{[A-Za-z0-9*]+}"
@@ -860,7 +877,9 @@ them or vice-versa, customize the variable `org-latex-preview-auto-generate'."
 ;; - When the cursor exits the boundaries of the fragment, the
 ;;   `after-string' property of the preview overlay is removed.
 
-(defvar-local org-latex-preview-live--docstring " ")
+(defvar-local org-latex-preview-live--docstring " "
+  "String that holds the live LaTeX preview image as a text property.")
+
 (defvar-local org-latex-preview-live--element-type nil)
 
 (defvar-local org-latex-preview-live--generator nil)
@@ -872,7 +891,21 @@ LaTeX environments."
   :type 'boolean)
 
 (defcustom org-latex-preview-live-display-type 'buffer
-  ";;TODO: "
+  "How to display live-updating previews of LaTeX snippets.
+
+This option is meaningful when live previews are enabled, by
+setting `org-latex-preview-auto-generate' to `live' and enabling
+`org-latex-preview-auto-mode'.
+
+The currently supported options are the symbols
+
+- buffer: Display live previews next to or under the LaTeX
+  fragment in the Org buffer.
+
+- eldoc: Display live previews using Eldoc.  Requires
+  `eldoc-mode' to be turned on in the Org buffer.  Note that
+  Eldoc in turn offers various display functions, such as the
+  echo area, the dedicated `eldoc-doc-buffer' and more."
   :group 'org-latex-preview
   :type  '(choice
            (const :tag "Display next to fragment" buffer)
@@ -924,12 +957,15 @@ updated no more than once in this interval of time."
                      (lambda () (setq waiting nil)))))))
 
 (defun org-latex-preview-live--clearout (ov)
-  ";TODO: "
+  "Clear out the live LaTeX preview for the preview overlay OV."
   (setq org-latex-preview-live--element-type nil)
   (overlay-put ov 'after-string nil))
 
 (defun org-latex-preview-live--regenerate (beg end _)
-  ";TODO: "
+  "Regenerate the LaTeX preview overlay that overlaps BEG and END.
+
+This is meant to be run via the `after-change-functions' hook in
+Org buffers when using live-updating LaTeX previews."
   (pcase-let ((`(,type . ,ov)
                (get-char-property-and-overlay (point) 'org-overlay-type)))
     (when (and ov (eq type 'org-latex-overlay)
@@ -940,7 +976,9 @@ updated no more than once in this interval of time."
         (org-latex-preview-live--clearout ov)))))
 
 (defun org-latex-preview-live--update-props (image-spec &optional box-face)
-  ";TODO: "
+  "Update the live preview string with the IMAGE-SPEC display property.
+
+BOX-FACE is the face to apply in addition."
   (let ((l (length org-latex-preview-live--docstring)))
     (put-text-property
      (1- l) l 'display image-spec
@@ -951,7 +989,7 @@ updated no more than once in this interval of time."
        org-latex-preview-live--docstring))))
 
 (defun org-latex-preview-live--ensure-overlay (&optional ov)
-  ";TODO: "
+  "Set up a live preview for the LaTeX fragment with overlay OV."
   (when-let*
       ((ov (or ov
                (let ((props (get-char-property-and-overlay (point) 'org-overlay-type)))
@@ -1009,6 +1047,7 @@ updated no more than once in this interval of time."
 ;; TODO: Replace with `org-latex-preview-live--update-overlay-run',
 ;; which see.
 (defun org-latex-preview-live--update-overlay (ov)
+  "Update the live LaTeX preview for overlay OV."
   (when (and (memq ov (overlays-at (point)))
              (overlay-get ov 'view-text))
     (if (or (overlay-get ov 'after-string)
@@ -1020,7 +1059,18 @@ updated no more than once in this interval of time."
 
 ;; Code for previews in org-src buffers
 (defun org-latex-preview-live--src-buffer-setup ()
-  ";TODO: "
+  "Set up the org-src buffer for live LaTeX previews.
+
+If `org-latex-preview-auto-generate' is set to `live' and
+`org-latex-preview-auto-mode' is turned on, live LaTeX previews
+are generated when editing a LaTeX fragment or environment using
+`org-edit-special'.
+
+If the source Org buffer is visible, these previews are displayed
+over the original fragment.  Otherwise previews are displayed in
+the org-src buffer.
+
+This is meant to be called via `org-src-mode-hook'."
   (when (and (equal major-mode (org-src-get-lang-mode "latex"))
              (buffer-local-value 'org-latex-preview-auto-mode
                                  (marker-buffer org-src--beg-marker))
@@ -1119,7 +1169,10 @@ updated no more than once in this interval of time."
 
 ;; Eldoc support for live previews
 (defun org-latex-preview-live--display-in-eldoc (callback)
-  ";;TODO: "
+  "Eldoc documentation function for live LaTeX previews.
+
+CALLBACK is supplied by Eldoc, see
+`eldoc-documentation-functions'."
   (when (and org-latex-preview-live--docstring
              (get-char-property (point) 'org-overlay-type))
     (funcall callback org-latex-preview-live--docstring)))
@@ -1130,6 +1183,9 @@ updated no more than once in this interval of time."
 
 ;; Live preview setup and teardown.
 (defun org-latex-preview-live--setup ()
+  "Set up hooks for live LaTeX previews.
+
+See `org-latex-preview-auto-generate' for details."
   (setq org-latex-preview-live--docstring " ")
   (setq-local org-latex-preview-live--generator
                  (thread-first #'org-latex-preview-live--regenerate
@@ -1148,6 +1204,9 @@ updated no more than once in this interval of time."
   (add-hook 'org-latex-preview-update-overlay-functions #'org-latex-preview-live--update-overlay nil 'local))
 
 (defun org-latex-preview-live--teardown ()
+  "Remove hooks for live LaTeX previews.
+
+See `org-latex-preview-auto-generate' for details."
   (when-let* ((props (get-char-property-and-overlay (point) 'org-overlay-type))
               ((eq (car props) 'org-latex-overlay))
               (ov (cdr props)))
