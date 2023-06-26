@@ -319,7 +319,7 @@ This affects IDs that are determined from the ID property.")
   pre.src-authinfo::before { content: 'Authinfo'; }
   pre.src-c:before { content: 'C'; }
   pre.src-C:before { content: 'C'; }
-  /* pre.src-C++ doesn't work in CSS */
+  pre.src-C\\+\\+:before { content: 'C++'; }
   pre.src-clojure:before { content: 'Clojure'; }
   pre.src-css:before { content: 'CSS'; }
   pre.src-D:before { content: 'D'; }
