@@ -5444,7 +5444,7 @@ Result depends on variable `org-highlight-latex-and-related'."
 			   "\\|"))))
 
 (defvar org-latex-preview-appearance-options) ; Defined in org-latex-preview.el.
-(declare-function org-latex-preview--face-around "org-latex-preview" (start end))
+(declare-function org-latex-preview--overlay-face "org-latex-preview" (ov))
 
 (defun org-do-latex-and-related (limit)
   "Highlight LaTeX snippets and environments, entities and sub/superscript.
@@ -5495,8 +5495,7 @@ highlighting was done, nil otherwise."
                              (overlay-get ov 'face)
                              (not (eq (overlay-get ov 'face) 'error)))
                     (overlay-put ov 'face
-                                 (org-latex-preview--face-around
-                                  (overlay-start ov) (overlay-end ov))))))
+                                 (org-latex-preview--overlay-face ov)))))
 	      (throw 'found t)))))
 	nil))))
 
