@@ -505,8 +505,7 @@ overlay face is set to `org-latex-preview-processing-face'."
         (overlay-put
          ov 'hidden-face
          (or (and errors 'error)
-             (org-latex-preview--face-around
-              (overlay-start ov) (overlay-end ov)))))
+             (org-latex-preview--overlay-face ov))))
        (errors
         (overlay-put
          ov 'before-string
@@ -546,6 +545,28 @@ Faces in `org-latex-preview--ignored-faces' are ignored."
               ((not (memq face org-latex-preview--ignored-faces))
                face))))
       'default))
+
+(defun org-latex-preview--overlay-face (ov)
+  "Return `face' property to be used for preview overlay OV.
+Return the face found by `org-latex-preview--face-around', with
+its unset attributes taken from the `default' face.  The returned
+face is completely specified, overriding all face attributes of
+the text replaced by the overlay."
+  (let ((face (org-latex-preview--face-around (overlay-start ov) (overlay-end ov)))
+        (fallback '((:inherit default :extend t))))
+    ;; If the overlay wraps to the next line and the Latex code it
+    ;; replaces has a face with the `:extend' attribute, the
+    ;; background color of that face extends to the empty space after
+    ;; the end of the line (unless FACE also sets `:extend').  This
+    ;; causes ugly color blocks when the code has the `org-block'
+    ;; face, as when `org-highlight-latex-and-related' is `native'.
+    ;; Instead, we set the `:extend' attribute on the fallback face to
+    ;; use its background color instead.  The `default' face is
+    ;; guaranteed to be fully specified, so the face attributes of the
+    ;; code are completely overridden by the overlay.
+    (if (eq face 'default)
+        (car fallback)
+      (cons face fallback))))
 
 ;; Code for `org-latex-preview-auto-mode':
 ;;
