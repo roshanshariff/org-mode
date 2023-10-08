@@ -887,9 +887,9 @@ them or vice-versa, customize the variable `org-latex-preview-auto-generate'."
   "String that holds the live LaTeX preview image as a text property.")
 (defvar-local org-latex-preview-live--element-type nil)
 (defvar-local org-latex-preview-live--generator nil)
-(defcustom org-latex-preview-live-preview-fragments t
-  "Whether LaTeX fragments should be live-previewed along with
-LaTeX environments."
+(defcustom org-latex-preview-live-preview-inline t
+  "Whether inline LaTeX fragments should be live-previewed along
+with LaTeX environments."
   :group 'org-latex-preview
   :type 'boolean)
 (defcustom org-latex-preview-live-display-type 'buffer
@@ -936,15 +936,15 @@ updated no more than once in this interval of time."
   "Return a debounced FUNC with DURATION applied."
   (let ((debounce-timer))
     (lambda (&rest args)
-      (when (timerp debounce-timer)
-        (cancel-timer debounce-timer)
-        (setq debounce-timer nil))
-      (setq debounce-timer
-            (run-at-time
-             duration nil
-             (lambda ()
-               (setq debounce-timer nil)
-               (apply func args)))))))
+      (if (timerp debounce-timer)
+          (timer-set-time debounce-timer (+ (float-time) duration))
+        (setq debounce-timer
+              (run-at-time
+               duration nil
+               (lambda ()
+                 (cancel-timer debounce-timer)
+                 (setq debounce-timer nil)
+                 (apply func args))))))))
 
 (defun org-latex-preview-live--throttle (func timeout)
   "Return a throttled FUNC with TIMEOUT applied."
@@ -1009,7 +1009,7 @@ BOX-FACE is the face to apply in addition."
                            (org-element-type elm)))))
              (eq org-latex-preview-live--element-type
                  'latex-environment))))
-      (when (or latex-env-p org-latex-preview-live-preview-fragments)
+      (when (or latex-env-p org-latex-preview-live-preview-inline)
         (when (eq org-latex-preview-live-display-type 'buffer)
           (unless (overlay-get ov 'after-string)
             ;; Note: The latex-env-specific string includes a zero
@@ -1337,8 +1337,9 @@ should it be enabled."
      ;; let's try to show the image if possible.
      (ov
       (overlay-put ov 'view-text t)
-      (overlay-put ov 'face (overlay-get ov 'hidden-face))
-      (overlay-put ov 'display (overlay-get ov 'preview-image))))))
+      (unless (overlay-get ov 'after-string) ;Live preview being shown
+        (overlay-put ov 'face (overlay-get ov 'hidden-face))
+        (overlay-put ov 'display (overlay-get ov 'preview-image)))))))
 
 (defun org-latex-preview-collect-fragments (&optional beg end)
   "Collect all LaTeX maths fragments/environments between BEG and END."
@@ -2341,12 +2342,12 @@ tests with the output of dvisvgm."
         ;; `image-file-handler') from being called.
         (file-name-handler-alist nil)
         (path (plist-get svg-fragment :path)))
-    (catch 'svg-exists
-      (dotimes (_ 1000) ; Check for svg existance over 1s.
-        (when (file-exists-p path)
-          (throw 'svg-exists t))
-        (sleep-for 0.001)))
     (when path
+      (catch 'svg-exists
+        (dotimes (_ 1000)           ; Check for svg existance over 1s.
+          (when (file-exists-p path)
+            (throw 'svg-exists t))
+          (sleep-for 0.001)))
       (with-temp-buffer
         (insert-file-contents path)
         (unless ; When the svg is incomplete, wait for it to be completed.
