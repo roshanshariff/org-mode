@@ -1747,6 +1747,7 @@ fragments are regenerated."
         (org-latex-preview--create-image-async
          (plist-get extended-info :processor)
          (cdr fragments)
+         :latex-preamble (plist-get extended-info :latex-header)
          :place-preview-p t)
         (setq fragments nil)))))
 
