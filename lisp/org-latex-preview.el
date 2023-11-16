@@ -522,6 +522,17 @@ overlay face is set to `org-latex-preview-processing-face'."
       (overlay-put ov 'face (overlay-get ov 'hidden-face)))
     (run-hook-with-args 'org-latex-preview-update-overlay-functions ov)))
 
+(defun org-latex-preview--single-face-p (spec)
+  "Return t if SPEC is a single face, rather than a list of faces.
+SPEC should be valid as a value of the `face' text or overlay
+property; see Info node `(elisp)Special properties'.  Return nil
+if SPEC is nil or a list of faces."
+  (and spec
+       (or (not (consp spec))
+           (keywordp (car spec))
+           (eq (car spec) 'foreground-color)
+           (eq (car spec) 'background-color))))
+
 (defun org-latex-preview--face-around (start end)
   "Return the relevant face symbol around the region START to END.
 A relevant face symbol before START is prefered, with END
@@ -531,19 +542,17 @@ Faces in `org-latex-preview--ignored-faces' are ignored."
   (or (and (> start (point-min))
            (not (eq (char-before start) ?\n))
            (let ((face (get-text-property (1- start) 'face)))
-             (cond
-              ((consp face)
-               (cl-set-difference face org-latex-preview--ignored-faces))
-              ((not (memq face org-latex-preview--ignored-faces))
-               face))))
+             (if (org-latex-preview--single-face-p face)
+                 (and (not (member face org-latex-preview--ignored-faces))
+                      face)
+               (seq-difference face org-latex-preview--ignored-faces))))
       (and (> (point-max) end)
            (not (eq (char-after end) ?\n))
            (let ((face (get-text-property (1+ end) 'face)))
-             (cond
-              ((consp face)
-               (cl-set-difference face org-latex-preview--ignored-faces))
-              ((not (memq face org-latex-preview--ignored-faces))
-               face))))
+             (if (org-latex-preview--single-face-p face)
+                 (and (not (member face org-latex-preview--ignored-faces))
+                      face)
+               (seq-difference face org-latex-preview--ignored-faces))))
       'default))
 
 (defun org-latex-preview--overlay-face (ov)
@@ -1520,8 +1529,8 @@ This is surprisingly complicated given the various forms of output
 \\=(get-text-property pos \\='face) can produce.
 
 Faces in `org-latex-preview--ignored-faces' are ignored."
-  (when (consp face)
-    (setq face (cl-set-difference face org-latex-preview--ignored-faces))
+  (unless (org-latex-preview--single-face-p face)
+    (setq face (seq-difference face org-latex-preview--ignored-faces))
     (when (= (length face) 1)
       (setq face (car face))))
   (cond
@@ -1532,6 +1541,14 @@ Faces in `org-latex-preview--ignored-faces' are ignored."
    ((keywordp (car face)) ; Spec like (:inherit org-block :extend t).
     (or (plist-get face attr)
         (face-attribute 'default attr)))
+   ((eq (car face) 'foreground-color)
+    (if (eq attr :foreground)
+        (cdr face)
+      (face-attribute 'default :foreground)))
+   ((eq (car face) 'background-color)
+    (if (eq attr :background)
+        (cdr face)
+      (face-attribute 'default :background)))
    ((consp (car face)) ; Spec like ((:inherit default :extend t) org-block).
     (or (plist-get (car face) attr)
         (face-attribute (cadr face) attr nil
