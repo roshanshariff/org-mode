@@ -656,7 +656,7 @@ Counting starts at 1."
 (define-obsolete-variable-alias
   'org-format-latex-header 'org-latex-preview-preamble "9.7")
 (define-obsolete-variable-alias
-  'org-preview-latex-default-process 'org-latex-preview-default-process "9.7")
+  'org-preview-latex-default-process 'org-latex-preview-process-default "9.7")
 (define-obsolete-variable-alias
   'org-preview-latex-process-alist 'org-latex-preview-process-alist "9.7")
 (define-obsolete-function-alias
