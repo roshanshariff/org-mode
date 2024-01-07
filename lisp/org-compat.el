@@ -650,7 +650,7 @@ Counting starts at 1."
                "9.0")
 
 (define-obsolete-variable-alias
-  'org-format-latex-options 'org-latex-preview-options "9.7")
+  'org-format-latex-options 'org-latex-preview-appearance-options "9.7")
 (make-obsolete-variable
  'org-format-latex-signal-error "no longer used" "9.7")
 (define-obsolete-variable-alias
