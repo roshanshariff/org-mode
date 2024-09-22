@@ -1407,13 +1407,6 @@ overlays were removed, nil otherwise."
     (mapc #'delete-overlay overlays)
     overlays))
 
-(defun org-latex-preview--preview-region (beg end)
-  "Preview LaTeX fragments between BEG and END.
-BEG and END are buffer positions."
-  (org-latex-preview-fragments
-   org-latex-preview-process-default
-   beg end))
-
 ;;;###autoload
 (defun org-latex-preview (&optional mode)
   "Generate or hide LaTeX fragment previews.
@@ -1460,7 +1453,8 @@ will be treated as \"point\"."
                      datum 'section)))
     (pcase mode
       ('buffer
-       (org-latex-preview--preview-region (point-min) (point-max)))
+       (org-latex-preview--preview-region
+        org-latex-preview-process-default (point-min) (point-max)))
       ('clear-buffer
        (org-latex-preview-clear-overlays (point-min) (point-max))
        (message "LaTeX previews removed from buffer"))
@@ -1469,7 +1463,8 @@ will be treated as \"point\"."
                     (save-excursion
                       (org-with-limited-levels (org-back-to-heading t) (point)))))
              (end (org-with-limited-levels (org-entry-end-position))))
-         (org-latex-preview--preview-region beg end)))
+         (org-latex-preview--preview-region
+          org-latex-preview-process-default beg end)))
       ('clear-section
        (org-latex-preview-clear-overlays
         (if (org-before-first-heading-p) (point-min)
@@ -1477,7 +1472,8 @@ will be treated as \"point\"."
             (org-with-limited-levels (org-back-to-heading t) (point))))
         (org-with-limited-levels (org-entry-end-position))))
       ('region
-       (org-latex-preview--preview-region (region-beginning) (region-end)))
+       (org-latex-preview--preview-region
+        org-latex-preview-process-default (region-beginning) (region-end)))
       ('clear-region
        (org-latex-preview-clear-overlays (region-beginning) (region-end)))
       ('point
@@ -1550,7 +1546,7 @@ should it be enabled."
             (push obj fragments)))))
     (nreverse fragments)))
 
-(defun org-latex-preview-fragments (processing-type &optional beg end)
+(defun org-latex-preview--preview-region (processing-type &optional beg end)
   "Produce image overlays of LaTeX math fragments between BEG and END.
 
 The LaTeX fragments are processed using PROCESSING-TYPE, a key of
@@ -1568,7 +1564,8 @@ protection against placing doubled up overlays."
     (overlay-recenter (or end (point-max))))
   (unless (eq (get-char-property (point) 'org-overlay-type)
               'org-latex-overlay)
-    (let ((ws (window-start)))
+    (let ((ws (if (window-live-p (get-buffer-window (current-buffer)))
+                  (window-start) 0)))
       (if (assq processing-type org-latex-preview-process-alist)
           (org-latex-preview--place-from-elements
            processing-type
