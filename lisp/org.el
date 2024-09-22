@@ -3335,6 +3335,10 @@ A nil value means to remove them, after a query, from the list."
     ;; inputenc and fontenc are for pdflatex only
     ("AUTO" "inputenc"  t ("pdflatex"))
     ("T1"   "fontenc"   t ("pdflatex"))
+    ;; amsmath and amssymb after inputenc/fontenc for pdflatex
+    (""     "amsmath"   t ("pdflatex"))
+    (""     "amssymb"   t ("pdflatex"))
+    (""     "capt-of"   nil)
     (""     "hyperref"  nil))
   "Alist of default packages to be inserted in the header.
 
