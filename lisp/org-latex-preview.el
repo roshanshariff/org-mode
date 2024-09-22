@@ -2096,7 +2096,7 @@ Returns a list of async tasks started."
             (plist-put (copy-sequence processing-info) :image-input-type "xdv")))
     (dolist (program programs)
       (org-check-external-command program error-message))
-    (when org-latex-preview-process-active-indicator
+    (when (and org-latex-preview-process-active-indicator place-preview-p)
       (dolist (fragment fragments-info)
         (org-latex-preview--indicate-processing
          (plist-get fragment :overlay) 'on)))
