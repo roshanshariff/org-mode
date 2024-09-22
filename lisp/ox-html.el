@@ -1190,9 +1190,9 @@ This is a HTML-specific counterpart to
 
 This supports two extra properties,
 :image-dir  an html-export counterpart of `org-latex-preview-cache', and
-:inline     a list of image formats (or single format symbol) that
-            should not be saved according to :image-dir, but instead
-            inlined in the generated HTML.  Valid format symbols are:
+:inline     a list of image format symbols that should not be saved according
+            to :image-dir, but instead inlined in the generated HTML.
+            Valid format symbols are:
             - png, to inline png images using <img> with a data URI
             - svg, to inline svg images using <img> with a data URI
             - svg-embed, to inline svg images using an <svg> element.
