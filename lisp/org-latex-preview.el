@@ -2050,6 +2050,79 @@ image are cached as per `org-latex-preview-cache', which see."
              (remhash element element-preview-hash-table)
              finally return element-preview-hash-table)))
 
+(cl-defun org-latex-preview-create-images
+    (strings &key preamble processing-type foreground
+             background page-width scale &allow-other-keys)
+  "Return a LaTeX preview image path or list of image paths.
+
+STRINGS is a string or list of strings.
+
+For PREAMBLE, PROCESSING-TYPE, FOREGROUND, BACKGROUND, PAGE-WIDTH and
+SCALE see `org-latex-preview-cache-images'."
+  (let* ((return-type (type-of strings))
+         (strings (org-ensure-list strings))
+         (preamble (or preamble
+                       (with-temp-buffer (org-latex-preview--get-preamble))))
+         (appearance-options
+          (org-combine-plists
+           org-latex-preview-appearance-options
+           (nconc (and foreground (list :foreground foreground))
+                  (and background (list :background background))
+                  (and page-width (list :page-width page-width))
+                  (and scale (list :scale scale)))))
+         (processing-type (or processing-type org-latex-preview-process-default))
+         (processing-info
+          (cdr (assq processing-type org-latex-preview-process-alist)))
+         (imagetype (or (plist-get processing-info :image-output-type) "png"))
+         ;; (numbering-offsets (cons nil (cadr entries-and-numbering)))
+         element-hash-list fragment-info)
+
+    ;; Create fragment info for the preview process
+    (cl-loop
+     for value in strings
+     with fg = (pcase (plist-get appearance-options :foreground)
+                 ((or 'auto 'default) (face-attribute 'default :foreground))
+                 (color color))
+     with bg = (pcase (plist-get appearance-options :background)
+                 ((or 'auto 'default) (face-attribute 'default :background))
+                 (color color))
+     with number = nil ;; (car (setq numbering-offsets (cdr numbering-offsets)))
+     for hash = (org-latex-preview--hash processing-type preamble value imagetype fg bg number)
+     for options = (org-combine-plists
+                    appearance-options
+                    (list :foreground fg :background bg
+                          :number number
+                          :continue-color t))
+     do
+     (push hash element-hash-list)
+     (unless (org-latex-preview--get-cached hash)
+       (push (list :string (org-latex-preview--tex-styled
+                            processing-type value options)
+                   :key hash)
+             fragment-info)))
+
+    ;; Generate fragment previews
+    (when fragment-info
+      (apply #'org-async-wait-for
+             (org-latex-preview--create-image-async
+              processing-type
+              (nreverse fragment-info)
+              :latex-preamble preamble
+              :appearance-options appearance-options)))
+
+    ;; Fragments generated, collect files
+    (cl-loop for hash in (nreverse element-hash-list)
+             for value in strings
+             for (image-file . image-info) = (org-latex-preview--get-cached hash)
+             if (and image-file (file-exists-p image-file))
+             collect image-file into image-files
+             else do (display-warning '(org-latex-preview get-cache)
+                                      (format "No image generated for fragment:\n%s" value))
+             and collect nil into image-files
+             finally return
+             (if (eq return-type 'cons) image-files (car-safe image-files)))))
+
+
 (cl-defun org-latex-preview--create-image-async
     (processing-type fragments-info &key latex-processor latex-preamble appearance-options place-preview-p)
   "Preview PREVIEW-STRINGS asynchronously with method PROCESSING-TYPE.
@@ -2970,6 +3043,8 @@ This is only used for non-persist image caching, used when
 (defun org-latex-preview--cache-image (key path info &optional cache-location)
   "Save the image at PATH with associated INFO in the cache indexed by KEY.
 Return (path . info).
+
+INFO is typically a plist containing image geometry information.
 
 The caching location is set by CACHE-LOCATION, which defaults to
 `org-latex-preview-cache'.  It should be the symbol \"persist\",
