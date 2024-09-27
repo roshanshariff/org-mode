@@ -1439,17 +1439,17 @@ MODE can also be a org-element LaTeX environment or fragment, which
 will be treated as \"point\"."
   (interactive "P")
   (when (display-graphic-p)
-    (when (integerp (car-safe mode)) ; Prefix argument
+    (unless (and mode (symbolp mode))
       (setq mode
-            (pcase (car mode)
+            (pcase (car-safe mode)
               (64 'clear-buffer)
               (16 'buffer)
               (4 (if (use-region-p) 'clear-region 'clear-section))
-              (_ (and (use-region-p) 'region)))))
-    (unless mode ; Auto, i.e. element at point or section
-      (setq mode (if-let ((datum (org-element-context))
-                          ((memq (org-element-type datum) '(latex-environment latex-fragment))))
-                     datum 'section)))
+              ((guard (use-region-p)) 'region)
+              (_ (if-let ((datum (org-element-context)) ; Auto, i.e. element at point or section
+                          ((memq (org-element-type datum)
+                                 '(latex-environment latex-fragment))))
+                     datum 'section)))))
     (pcase mode
       ('buffer
        (org-latex-preview--preview-region
