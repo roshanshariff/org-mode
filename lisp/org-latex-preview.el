@@ -480,7 +480,8 @@ the image.")
       (overlay-put ov 'insert-in-front-hooks
                    (list #'org-latex-preview-auto--insert-front-handler))
       (overlay-put ov 'insert-behind-hooks
-                   (list #'org-latex-preview-auto--insert-behind-handler)))
+                   (list #'org-latex-preview-auto--insert-behind-handler))
+      (run-hook-with-args 'org-latex-preview-overlay-update-functions ov))
     ov))
 
 (defun org-latex-preview--indicate-processing (ov &optional on)
