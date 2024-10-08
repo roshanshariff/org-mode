@@ -747,10 +747,8 @@ This is only active when either
         (when (and org-latex-preview-numbered
                    (cl-find 'latex-environment fragments
                             :key #'org-element-type :test #'eq))
-          (setq fragments
-                (append fragments
-                        (org-latex-preview--get-numbered-environments
-                         end nil))))
+          (nconc fragments (org-latex-preview--get-numbered-environments
+                         end nil)))
         (org-latex-preview--place-from-elements
          org-latex-preview-process-default
          fragments)))))
