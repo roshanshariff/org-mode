@@ -206,7 +206,7 @@ Place-holders only used by `:image-converter':
                  (list
                   (concat "dvisvgm --page=1- --optimize --clipjoin --relative --no-fonts"
                           (if (>= org-latex-preview--dvisvgm3-minor-version 2)
-                              " -v3 --message='processing page {?pageno}: output written to {?svgfile}'" "")
+                              " -v3 --message='processing page {?pageno}: output written to {?svgpath}'" "")
                           " --bbox=preview -o %B-%%9p.svg %f"))))))
 
 (defcustom org-latex-preview-compiler-command-map
@@ -2792,7 +2792,7 @@ EXTENDED-INFO, and displayed in the buffer."
         (when (save-excursion
                 (re-search-forward "output written to \\(.*.svg\\)$" end t))
           (setq fragment-info (nth (1- page) fragments))
-          (plist-put fragment-info :path (expand-file-name (match-string 1) temporary-file-directory))
+          (plist-put fragment-info :path (match-string 1))
           (when (save-excursion
                   (re-search-forward "^  page is empty" end t))
             (unless (plist-get fragment-info :error)
