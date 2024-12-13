@@ -1821,7 +1821,7 @@ Note: this function changes the current match data."
   (let ((temp-buffer (or (and (buffer-live-p org-latex-preview--numbering-count-buffer)
                               org-latex-preview--numbering-count-buffer)
                          (setq org-latex-preview--numbering-count-buffer
-                               (get-buffer-create " *Org LaTeX preview numbering calculation*"))))
+                               (get-buffer-create " *Org LaTeX preview numbering calculation*" t))))
         (count-instances
          (lambda (needle)
            (let ((count 0))
@@ -2044,7 +2044,8 @@ image are cached as per `org-latex-preview-cache', which see."
                               (org-element-property :value element)))
              finally return element-preview-hash-table)))
 
-(cl-defun org-latex-preview--create-image-async (processing-type fragments-info &key latex-processor latex-preamble appearance-options place-preview-p)
+(cl-defun org-latex-preview--create-image-async
+    (processing-type fragments-info &key latex-processor latex-preamble appearance-options place-preview-p)
   "Preview PREVIEW-STRINGS asynchronously with method PROCESSING-TYPE.
 
 FRAGMENTS-INFO is a list of plists, each of which provides
@@ -2185,12 +2186,6 @@ Returns a list of async tasks started."
                  (list
                   #'org-latex-preview--failure-callback
                   #'org-latex-preview--cleanup-callback))
-      (when org-latex-preview-process-finish-functions
-        ;; Extra callbacks to run after image generation
-        (push #'org-latex-preview--run-finish-functions
-              (plist-get (cddr img-extract-async) :success))
-        (push #'org-latex-preview--run-finish-functions
-              (plist-get (cddr img-extract-async) :failure)))
       (pcase processing-type
         ('dvipng
          (plist-put (cddr img-extract-async) :filter
@@ -2199,11 +2194,14 @@ Returns a list of async tasks started."
          (plist-put (cddr img-extract-async) :filter
                     #'org-latex-preview--dvisvgm-filter))
         (_
-         (plist-put (cddr img-extract-async) :success
-                    (list ; The order is important here.
-                     #'org-latex-preview--generic-callback
-                     #'org-latex-preview--cleanup-callback
-                     #'org-latex-preview--check-all-fragments-produced))))
+         (push #'org-latex-preview--generic-callback
+               (plist-get (cddr img-extract-async) :success))))
+      (when org-latex-preview-process-finish-functions
+        ;; Extra callbacks to run after image generation
+        (push #'org-latex-preview--run-finish-functions
+              (plist-get (cddr img-extract-async) :success))
+        (push #'org-latex-preview--run-finish-functions
+              (plist-get (cddr img-extract-async) :failure)))
       (if (and (eq processing-type 'dvipng)
                (member "--follow" (cadr img-extract-async)))
           (list (org-async-call tex-compile-async)
@@ -2413,11 +2411,18 @@ The path of the created LaTeX file is returned."
 
 (defun org-latex-preview--tex-compile-async (extended-info)
   "Create an `org-async-call' spec to compile the texfile in EXTENDED-INFO."
-  (let* ((tex-process-buffer
-          (with-current-buffer
-              (get-buffer-create org-latex-preview--latex-log)
-            (erase-buffer)
-            (current-buffer)))
+  (let* ((tex-process-buffer            ;Create a new buffer if a process is running
+          (if (and (buffer-live-p (get-buffer org-latex-preview--latex-log))
+                   (get-buffer-process org-latex-preview--latex-log))
+              (let ((buf (generate-new-buffer org-latex-preview--latex-log t)))
+                (prog1 buf
+                  (buffer-disable-undo buf)
+                  (plist-put extended-info :proc-buffers (list buf))))
+            (with-current-buffer        ;Else reuse the standard process buffer
+                (get-buffer-create org-latex-preview--latex-log t)
+              (setq buffer-undo-list t)
+              (erase-buffer)
+              (current-buffer))))
          (tex-compile-command-fmt
           (pcase (plist-get extended-info :latex-compiler)
             ((and (pred stringp) cmd) cmd)
@@ -2466,11 +2471,18 @@ The path of the created LaTeX file is returned."
 
 (defun org-latex-preview--image-extract-async (extended-info)
   "Create an `org-async-call' spec to extract images according to EXTENDED-INFO."
-  (let* ((img-process-buffer
-          (with-current-buffer
-              (get-buffer-create org-latex-preview--image-log)
-            (erase-buffer)
-            (current-buffer)))
+  (let* ((img-process-buffer            ;Create a new buffer if a process is running
+          (if (and (buffer-live-p (get-buffer org-latex-preview--image-log))
+                   (get-buffer-process org-latex-preview--image-log))
+              (let ((buf (generate-new-buffer org-latex-preview--image-log t)))
+                (prog1 buf
+                  (buffer-disable-undo buf)
+                  (push buf (plist-get extended-info :proc-buffers))))
+            (with-current-buffer        ;Else reuse the standard process buffer
+                (get-buffer-create org-latex-preview--image-log t)
+              (setq buffer-undo-list t)
+              (erase-buffer)
+              (current-buffer))))
          (appearance-options (plist-get extended-info :appearance-options))
          (img-extract-command
           (pcase
@@ -2531,6 +2543,7 @@ The path of the created LaTeX file is returned."
 (defun org-latex-preview--do-cleanup (extended-info)
   "Delete files after image creation, in accord with EXTENDED-INFO."
   (let* ((texfile (plist-get extended-info :texfile))
+         (proc-buffers (plist-get extended-info :proc-buffers))
          (outputs-no-ext (expand-file-name (file-name-base texfile)
                                            temporary-file-directory))
          (images
@@ -2543,6 +2556,11 @@ The path of the created LaTeX file is returned."
               '(".dvi" ".xdv" ".pdf" ".tex" ".aux" ".log"
                 ".svg" ".png" ".jpg" ".jpeg" ".out"))))
     (when (file-exists-p texfile) (delete-file texfile))
+    (when proc-buffers
+      (unless (cl-some (lambda (fragment-info)
+                         (plist-get fragment-info :errors))
+                       (plist-get extended-info :fragments))
+        (mapc #'kill-buffer proc-buffers)))
     (dolist (img images)
       (and img (delete-file img)))
     (dolist (ext clean-exts)
