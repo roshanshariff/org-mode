@@ -2014,9 +2014,13 @@ image are cached as per `org-latex-preview-cache', which see."
              fragment-info))
      (setq prev-fg fg prev-bg bg))
 
-    (when (and image-dir (not (file-directory-p image-dir)))
-      (make-directory image-dir 'parents)
-      (setq image-dir (expand-file-name image-dir)))
+    (when image-dir
+      (unless (file-name-absolute-p image-dir)
+        (let* ((out-file (plist-get export-info :output-file))
+               (out-dir (and out-file (file-name-directory out-file))))
+          (setq image-dir (expand-file-name image-dir out-dir))))
+      (unless (file-directory-p image-dir)
+        (make-directory image-dir 'parents)))
 
     ;; Generate fragment previews
     (let ((org-latex-preview-cache (or image-dir org-latex-preview-cache)))
