@@ -436,7 +436,9 @@ namely:
   process-buffer, and INFO as arguments.
 - A function, which is called with exit-code, process-buffer,
   and INFO as arguments.
-- A list, which is used as an argument list for a new `org-async-call' call.
+- An argument list for a new `org-async-call', whose first item is the
+  symbol org-async-task.
+- A list of callbacks, each of which is of any of the above.
 - nil, which does nothing.
 
 When PROC succeeds by exiting with an exit code of zero, the SUCCESS
