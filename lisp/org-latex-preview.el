@@ -2043,10 +2043,11 @@ image are cached as per `org-latex-preview-cache', which see."
              for (source-file . image-info) = (org-latex-preview--get-cached hash image-dir)
              if (and source-file (file-exists-p source-file))
              do (puthash element (cons source-file image-info) element-preview-hash-table)
-             else do (display-warning
-                      '(org latex-preview get-cache)
-                      (format "No image generated for fragment:\n%s"
-                              (org-element-property :value element)))
+             else do
+             (display-warning '(org latex-preview get-cache)
+                              (format "No image generated for fragment:\n%s"
+                                      (org-element-property :value element)))
+             (remhash element element-preview-hash-table)
              finally return element-preview-hash-table)))
 
 (cl-defun org-latex-preview--create-image-async
