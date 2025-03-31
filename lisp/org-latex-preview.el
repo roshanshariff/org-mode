@@ -3185,9 +3185,13 @@ process."
   (org-latex--precompile
    (list :latex-compiler (plist-get processing-info :latex-processor)
          :precompile-format-spec
-         (let ((org-tex-compiler
-                (cdr (assoc (plist-get processing-info :latex-processor)
-                            org-latex-preview-compiler-command-map))))
+         (let* ((compilers
+                 (assoc (plist-get processing-info :latex-processor)
+                        org-latex-preview-compiler-command-map))
+                (org-tex-compiler
+                 (if (string= (plist-get processing-info :image-input-type) "pdf")
+                     (car compilers)
+                   (cdr compilers))))
            `((?l . ,org-tex-compiler)
              (?L . ,(car (split-string org-tex-compiler))))))
    preamble

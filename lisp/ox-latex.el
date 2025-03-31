@@ -2307,8 +2307,8 @@ process."
            preamble
            (concat
             (plist-get info :latex-compiler)
-            (if tempfile-p "-temp"
-              default-directory))
+            (alist-get ?l (plist-get info :precompile-format-spec))
+            (if tempfile-p "-temp" default-directory))
            (sha1)))
         (default-directory
           (if tempfile-p temporary-file-directory default-directory)))
