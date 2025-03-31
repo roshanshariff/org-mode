@@ -3254,7 +3254,9 @@ the horizontal and vertical directions."
   "Return a RGB color for the LaTeX color package."
   (org-latex-preview--format-color (face-attribute 'default attr nil)))
 
-(defvar org-latex-preview--format-color-cache nil
+(defvar org-latex-preview--format-color-cache
+  '(("unspecified-fg" . "1.000,1.000,1.000")
+    ("unspecified-bg" . "0.000,0.000,0.000"))
   "Cache for `org-latex-preview--format-color'.
 Because `org-latex-preview--format-color' is called multiple
 times for every fragment, even though only few colors will be
