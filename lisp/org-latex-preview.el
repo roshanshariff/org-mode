@@ -232,7 +232,7 @@ When non-nil, org-persist is used to cache the fragments and
 data.  Otherwise, a temporary directory is used for images and
 the data is stored in `org-latex-preview--table' for the duration
 of the Emacs session."
-  :group 'org-latex
+  :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type '(choice (const :tag "Use org-mode's persistent cache system" persist)
           (const :tag "Use the system temporary directory" temp)
@@ -242,7 +242,7 @@ of the Emacs session."
   "A homologue of `org-persist-default-expiry' for preview data.
 This is only relevant when `org-latex-preview-cache' is set to
 persist."
-  :group 'org-latex
+  :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type '(choice (const :tag "Never" never)
           (const :tag "Always" nil)
@@ -260,7 +260,7 @@ Alternatively, when set to the symbol \"preview\" numbering will
 simply be left as the automatic LaTeX numbering generated when
 previewing the batch of fragments.  This may be mostly-correct,
 or mostly-incorrect depending on the situation."
-  :group 'org-latex
+  :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type '(choice (const :tag "No" nil)
           (const :tag "Preview " preview)
@@ -278,7 +278,7 @@ There are three recognised value symbols:
   change how it appears.
 - fringe, apply a fringe marker to lines where fragments are being
   processed."
-  :group 'org-latex
+  :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type '(choice
           (const :tag "No indicator" nil)
@@ -415,7 +415,7 @@ The following values are supported:
 
 Note that existing previews are always updated after the cursor
 moves out of them."
-  :group 'org-latex
+  :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type '(choice
           (const :tag "Track inserts" t)

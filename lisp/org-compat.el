@@ -866,6 +866,8 @@ images at the same place."
  'org-preview-latex-image-directory "replaced with org-persist" "9.7")
 
 ;; FIXME: Unused; obsoleted; to be removed.
+(defvar org-latex-default-packages-alist)
+(defvar org-latex-packages-alist)
 (defun org-format-latex
     (prefix &optional beg end dir overlays msg forbuffer processing-type)
   "Replace LaTeX fragments with links to an image.
@@ -1024,6 +1026,7 @@ The overlay will be above BEG if OVERLAYS is non-nil."
 
 (defvar org-latex-preview-compiler-command-map)
 (defvar org-latex-precompile)
+(defvar org-latex-compiler)
 
 ;; FIXME: Unused; obsoleted; to be removed.
 (defun org-create-formula-image
