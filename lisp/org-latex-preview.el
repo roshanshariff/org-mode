@@ -2288,7 +2288,11 @@ previews."
                     (org-export-get-backend 'latex))
                    (org-export--get-buffer-attributes)
                    '(:time-stamp-file nil)))
+            org-export-replace-macros
             org-export-use-babel
+            org-export-expand-links
+            org-export-process-citations
+            org-mode-hook
             org-latex-precompile
             ;; (org-latex-conditional-features
             ;;  (cl-remove-if
