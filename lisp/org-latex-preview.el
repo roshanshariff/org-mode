@@ -389,7 +389,7 @@ header, or they will be appended."
   :group 'org-latex-preview
   :type 'string)
 
-(defcustom org-latex-preview-process-precompiled t
+(defcustom org-latex-preview-process-precompile t
   "Use LaTeX header precompilation when previewing fragments.
 This causes a slight delay the first time `org-latex-pdf-process'
 is called in a buffer, but subsequent calls will be faster.
@@ -2341,7 +2341,7 @@ preview.sty for more details.")
   "Create a LaTeX file based on PROCESSING-INFO and FRAGMENTS.
 
 More specifically, a preamble will be generated based on
-PROCESSING-INFO.  Then, if `org-latex-preview-process-precompiled' is
+PROCESSING-INFO.  Then, if `org-latex-preview-process-precompile' is
 non-nil, a precompiled format file will be generated if needed
 and used.  Otherwise the preamble is used normally.
 
@@ -2376,7 +2376,7 @@ The path of the created LaTeX file is returned."
          (precompile-failed-msg))
     (when (and relative-file-p remote-file-p)
       (error "Org LaTeX Preview does not currently support \\input/\\include in remote files"))
-    (when org-latex-preview-process-precompiled
+    (when org-latex-preview-process-precompile
       (pcase (plist-get processing-info :latex-processor)
         ("pdflatex"
          (if-let ((format-file (org-latex-preview--precompile processing-info header
@@ -2399,8 +2399,8 @@ The path of the created LaTeX file is returned."
          '(org latex-preview disable-local-precompile)
          (concat
           precompile-failed-msg
-          " Disabling LaTeX preview precompile in this buffer.\n To re-enable, run `(setq-local org-latex-preview-process-precompiled t)' or reopen this buffer."))
-        (setq-local org-latex-preview-process-precompiled nil)))
+          " Disabling LaTeX preview precompile in this buffer.\n To re-enable, run `(setq-local org-latex-preview-process-precompile t)' or reopen this buffer."))
+        (setq-local org-latex-preview-process-precompile nil)))
     (with-temp-file tex-temp-name
       (insert header)
       ;; The \abovedisplayskip length must be set after \begin{document} because
@@ -2700,7 +2700,7 @@ fragments in EXTENDED-INFO."
       ;; as it is currently known to cause issues.
       (save-excursion
         (goto-char (point-min))
-        (when (if (and org-latex-preview-process-precompiled
+        (when (if (and org-latex-preview-process-precompile
                        (re-search-forward "^PRELOADED FILES:" nil t))
                   (re-search-forward "^ *hyperref\\.sty" nil t)
                 (re-search-forward "^(.*hyperref/hyperref\\.sty" nil t))

@@ -11702,9 +11702,9 @@ The LaTeX preview process pipeline works as follows:
 
 Accordingly, each step of this pipeline can be independently customized.
 
-#+vindex: org-latex-preview-process-precompiled
+#+vindex: org-latex-preview-process-precompile
 Precompilation is enabled by default, and you can disable it by
-setting ~org-latex-preview-process-precompiled~.  Currently only
+setting ~org-latex-preview-process-precompile~.  Currently only
 =pdflatex= supports precompilation consistently, and it is
 automatically disabled when using =xelatex= or =lualatex=.  It is also
 disabled buffer-locally if the precompilation attempt fails for some
