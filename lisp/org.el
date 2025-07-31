@@ -3417,7 +3417,7 @@ A string will be inserted as-is in the header of the document.
 Make sure that you only list packages here which:
 
   - you want in every file;
-  - do not conflict with the setup in `org-latex-preview-header';
+  - do not conflict with the setup in `org-latex-preview-preamble';
   - do not conflict with the default packages in
     `org-latex-default-packages-alist'."
   :group 'org-latex

@@ -863,7 +863,7 @@ images at the same place."
   :type 'string)
 
 (make-obsolete-variable
- 'org-preview-latex-image-directory "replaced with org-persist" "9.7")
+ 'org-preview-latex-image-directory 'org-latex-preview-cache "9.7")
 
 ;; FIXME: Unused; obsoleted; to be removed.
 (defvar org-latex-default-packages-alist)

@@ -322,7 +322,7 @@ processing after the LaTeX preview process."
   :type 'hook)
 
 (defcustom org-latex-preview-overlay-update-functions nil
-  "Abnormal hook run after a preview-overlay is updated.
+  "Abnormal hook run after a preview overlay is updated.
 
 Each function in this hook is called with one argument, the
 overlay that was updated."
@@ -343,7 +343,7 @@ that the cursor moved out of."
   :type 'hook)
 
 (defcustom org-latex-preview-overlay-open-functions nil
-  "Hook run after hiding a LaTeX preview image.
+  "Abnormal hook run after hiding a LaTeX preview image.
 
 This hook typically runs when the cursor is moved into a LaTeX
 fragment or environment with `org-latex-preview-mode'
@@ -980,7 +980,7 @@ The availible contexts are:
 - inline, for inline LaTeX fragments
 - block, for LaTeX environments
 - edit-special, for org-edit-special buffers"
-  :group 'org-latex-preview-live
+  :group 'org-latex-preview
   :type '(choice
           (const :tag "Everywhere" t)
           (const :tag "Never" nil)

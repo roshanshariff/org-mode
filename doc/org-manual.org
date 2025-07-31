@@ -11589,6 +11589,7 @@ lines:
 :END:
 #+cindex: @LaTeX{} fragments, preview
 
+#+vindex: org-preview-latex-default-process
 #+vindex: org-latex-preview-process-default
 If you have a working LaTeX installation and =dvipng=, =dvisvgm= or
 =convert= installed[fn:39], LaTeX fragments can be processed to
@@ -11623,20 +11624,8 @@ You can set this globally by customizing
 
 Org mode caches LaTeX fragment preview images so that repeated calls
 to ~org-latex-preview~ for the same fragment can reuse them.  The
-cache can also be manually cleared if required.
-
-- (~org-latex-preview-clear-cache~) ::
-  #+findex: org-latex-preview-clear-cache
-
-  Clear the LaTeX preview cache.
-
-  Interactively, act on
-  - the region if it is active,
-  - the fragment at point if in a fragment,
-  - the whole buffer otherwise.
-
-  With a prefix argument, clear the entire LaTeX preview cache and
-  delete all cached LaTeX preview images.
+cache can also be manually cleared if required (see [[*Customizing the
+LaTeX preview process]]).
 
 Errors encountered when compiling preview fragments are captured and
 indicated in the display of the preview image.  Depending on the type
@@ -11645,46 +11634,100 @@ or a fringe marker.  Mousing over the image will show the error(s) in
 a tooltip, and they can be displayed in the echo area by calling
 ~display-local-help~ when the cursor is on the image or LaTeX fragment.
 
-**** Customizing the preview LaTeX preamble
+Normally, LaTeX preview images cover the underlying LaTeX text.
+Editing and updating LaTeX fragments thus requires clearing the
+previews first.  To speed up the edit/preview cycle, Org also provides
+optional /automatic/ preview features with more immediate feedback:
 
-#+vindex: org-latex-preview-preamble
-You can customize ~org-latex-preview-preamble~ to specify the default
-LaTeX preamble used for processing LaTeX fragments.  This can refer to
-packages in ~org-latex-default-packages-alist~ and
-~org-latex-packages-alist~.  When previewing, this preamble will be
-combined with keywords specified in the document via
+- Automatic previews: Hide and reveal preview images when the cursor
+  moves into or out of them, and automatically preview LaTeX fragments
+  after the cursor exits the fragment.
 
-#+texinfo: @noindent
-: #+LATEX_HEADER:
+- Live previews: Continuously preview LaTeX fragments as you type,
+  giving you near immediate feedback (especially when using
+  =pdflatex=).  The preview image will continue to be displayed
+  adjacent to the fragment even when editing it.
 
-A small preamble is recommended for real-time LaTeX previews.  To help
-with this you can specify header content to be used for LaTeX exports
-but not previews via the =#+LATEX_HEADER_EXTRA= keyword, (see [[*LaTeX
-specific export settings]]).
+#+cindex: @LaTeX{} fragments, live preview
+To enable automatic previews, turn on the minor mode
+~org-latex-preview-mode~.
 
-**** Customizing the LaTeX preview appearance
+- (~org-latex-preview-mode~) ::
+  #+findex: org-latex-preview-mode
 
-By default, LaTeX previews are colored, sized and aligned to fit in
-correctly with the surrounding text.  If you are using SVG previews
-(the default), they will also change colors automatically when you
-change faces or Emacs themes.
+  When this mode is turned on, moving the cursor into a previewed
+  LaTeX fragment will reveal the Org markup and hide the image.
+  Moving the cursor out of the fragment will cause the (possibly
+  updated) preview image to be displayed again.
 
-#+vindex: org-latex-preview-appearance-options
-If the results are not to your liking, you can customize the
-appearance of LaTeX previews by modifying
-~org-latex-preview-appearance-options~.  In particular, its ~:scale~
-and ~:zoom~ properties can be used to adjust the size of the preview
-images.
+  If ~org-latex-preview-mode-track-inserts~ is non-nil, previews for
+  LaTeX fragments will be auto-generated as they are typed or
+  otherwise inserted into the buffer.
 
-#+vindex: org-latex-preview-numbered
-When generating previews, Org mode can track equation numbers and keep
-them consistent by regenerating previews when necessary.  This
-behavior is controlled by the variable ~org-latex-preview-numbered~.
+  #+vindex: org-latex-preview-live
+  Additionally, if the option ~org-latex-preview-mode-display-live~ is
+  non-nil, previews for modified or new LaTeX fragments will be
+  displayed adjacent to the fragment, and updated in real-time as you
+  type.
+
+~org-latex-preview-mode-display-live~ can be configured to apply separately to
+LaTeX fragments and LaTeX environments.  Additionally, it can also be
+set to preview LaTeX in the Org buffer when editing it in a dedicated
+LaTeX-mode buffer with ~org-edit-special~.
+
+**** Customizing live LaTeX previews
+
+#+vindex: org-latex-preview-mode-track-inserts
+~org-latex-preview-mode~ will always hide and show preview images
+already present in the buffer as the cursor moves into and out of
+LaTeX fragments.  However, you can customize whether it should also
+generate new previews as the buffer contents are changed.  This is
+controlled by the option ~org-latex-preview-mode-track-inserts~.
+
+#+vindex: org-latex-preview-mode-ignored-environments
+You can specify a list of LaTeX environments that should
+not be automatically previewed by ~org-latex-preview-mode~ when
+they are inserted into the buffer.  This is controlled by
+~org-latex-preview-mode-ignored-environments~.  By default, "figure"
+environments are ignored by ~org-latex-preview~.
+
+#+vindex: org-latex-preview-mode-ignored-commands
+You can also specify Emacs commands that should explicitly avoid
+toggling the preview image with
+~org-latex-preview-mode-ignored-commands~.  For instance, adding the
+~next-line~ and ~previous-line~ commands to this list will ensure that
+regular Emacs navigation does not cause the preview image for a
+fragment to be toggled, which can be distracting.
+
+#+vindex: org-latex-preview-update-delay
+By default, there is a delay (debounce) of 1 second between editing a
+fragment and generating a live preview.  This can be changed by
+setting ~org-latex-preview-mode-update-delay~.  Note that values of
+0.1 or lower can cause high CPU utilization.
+
+#+vindex: org-latex-preview-overlay-open-functions
+#+vindex: org-latex-preview-overlay-close-functions
+When ~org-latex-preview-mode~ is active, the hooks
+~org-latex-preview-overlay-open-functions~ and
+~org-latex-preview-overlay-close-functions~ run when the cursor moves
+into or out of a preview overlay, respectively.  Hook functions are
+called with one argument, the overlay being "opened" or "closed".
+These hooks can be used to modify the overlay or image properties.
+
+#+vindex: org-latex-preview-mode-display-type
+Finally, when editing a fragment live previews can be displayed in a
+few different locations.  The default setting displays them next to
+the LaTeX element when editing inline fragments, and under the LaTeX
+element when editing LaTeX environments.  Alternatively, the preview
+can be displayed via Eldoc in a location determined by
+~eldoc-display-functions~.  To set this customize
+~org-latex-preview-mode-display-type~ and turn on ~eldoc-mode~.
 
 **** Customizing the LaTeX preview process
 
 The LaTeX preview process pipeline works as follows:
 
+#+cindex: @LaTeX{} fragments, precompilation
 1. LaTeX fragments in the region being previewed are collected.
 2. The LaTeX preamble for the buffer is constructed.  If the LaTeX
    compiler in use (see next) supports precompilation, an object dump
@@ -11735,11 +11778,15 @@ this unless you have very specific needs.
 #+vindex: org-latex-preview-cache
 #+vindex: org-latex-preview-persist-expiry
 You can control where LaTeX previews are cached by customizing
-~org-latex-preview-cache~.  By default, Org stores them in the
-org-persist cache with an expiry determined by
+~org-latex-preview-cache~.  By default, Org stores them in
+~org-persist-directory~ with an expiry determined by
 ~org-latex-preview-persist-expiry~.  It can also be set to a string
 naming an absolute or relative path, or to the symbol =temp= to not
 cache images beyond the current Emacs session.
+
+#+findex: org-latex-preview-clear-cache
+The LaTeX preview cache can be manually cleared (globally or
+buffer-locally) by calling ~org-latex-preview-clear-cache~.
 
 #+vindex: org-latex-preview-process-active-indicator
 When a preview process is running, a visual processing indicator is
@@ -11760,86 +11807,58 @@ image for an overlay changes.  It can be used to modify the overlay
 appropriately, for example to center the image in the buffer.  Hook
 functions are called with one argument, the overlay being updated.
 
-**** Automatic and live LaTeX previews
+**** Customizing the LaTeX preview preamble
 
-Org mode provides two levels of automatic LaTeX preview generation
-with increasing degrees of immediate feedback:
+#+cindex: @LaTeX{} preview preamble
+#+vindex: org-format-latex-header
+#+vindex: org-latex-preview-preamble
+You can customize ~org-latex-preview-preamble~ to specify the default
+LaTeX preamble used for processing LaTeX fragments.  This can include
+the placeholder strings =[DEFAULT-PACKAGES]= and =[PACKAGES]= to
+include packages specified in ~org-latex-default-packages-alist~ and
+~org-latex-packages-alist~ respectively.  See ~org-latex-classes~ for
+a detailed description of the placeholders.  When previewing, this
+preamble will be combined with keywords specified in the document via
 
-- Automatic previews: It can hide and reveal preview images as the
-  cursor moves into or out of them, and automatically preview LaTeX
-  fragments after you finish typing them and exit the fragment.
+#+texinfo: @noindent
+: #+LATEX_HEADER:
 
-- Live previews: In addition to the above, it can continuously preview
-  LaTeX fragments as you type, giving you near immediate feedback
-  (especially when using =pdflatex=).  The preview image will continue
-  to be displayed adjacent to the fragment even when editing it.
+A small preamble is recommended if you are using real-time (live)
+LaTeX previews.  To help with this you can specify header content to
+be used for LaTeX exports but not previews via the
+=#+LATEX_HEADER_EXTRA= keyword, (see [[*LaTeX specific export
+settings]]).
 
-To enable automatic previews, turn on the minor mode
-~org-latex-preview-auto-mode~.
+**** Customizing the LaTeX preview appearance
 
-- (~org-latex-preview-auto-mode~) ::
-  #+findex: org-latex-preview-auto-mode
+By default, LaTeX previews are colored, sized and aligned to fit in
+correctly with the surrounding text.  If you are using SVG previews
+(the default), they will also change colors automatically when you
+change faces or Emacs themes.
 
-  Generate previews of LaTeX fragments as they are entered in the
-  buffer.  Previews will be generated (removed) when there is any
-  change to the buffer that includes the insertion (deletion) of a
-  LaTeX environment or fragment.
+#+vindex: org-format-latex-options
+#+vindex: org-latex-preview-appearance-options
+If the results are not to your liking, you can customize the
+appearance of LaTeX previews by modifying
+~org-latex-preview-appearance-options~. This plist can be used to
+specify the following aspects of the appearance of LaTeX previews:
 
-  Moving the cursor into or out of a preview image will cause the
-  image to be hidden or revealed respectively.
+- Foreground and background: by default the foreground matches the
+  color of the surrounding text and the background is transparent.
+  The ~:foreground~ and ~:background~ properties can be used to change
+  this.
+- Zoom and scale: The ~:zoom~ property controls the relative size of
+  the preview as displayed in the buffer, and ~:scale~ controls the
+  size of the generated image.  ~:scale~ has no meaning for SVG
+  images.
+- Page width: The ~:page-width~ property determines the width of the
+  preview image (including whitespace padding) of LaTeX environments.
 
-#+vindex: org-latex-preview-auto-track-inserts
-~org-latex-preview-auto-mode~ will always hide and show preview images
-already present in the buffer as the cursor moves into and out of
-LaTeX fragments.  However, you can customize whether it should also
-generate new previews as the buffer contents are changed.  This is
-controlled by the option ~org-latex-preview-auto-track-inserts~.
-
-#+vindex: org-latex-preview-auto-ignored-environments
-You can specify a list of LaTeX environments that should
-not be automatically previewed by ~org-latex-preview-auto-mode~ when
-they are inserted into the buffer.  This is controlled by
-~org-latex-preview-auto-ignored-environments~.
-
-#+vindex: org-latex-preview-auto-ignored-commands
-You can also specify Emacs commands that should explicitly avoid
-toggling the preview image with
-~org-latex-preview-auto-ignored-commands~.  For instance, adding the
-~next-line~ and ~previous-line~ commands to this list will ensure that
-regular Emacs navigation does not cause the preview image for a
-fragment to be toggled, which can be distracting.
-
-#+vindex: org-latex-preview-overlay-open-functions
-#+vindex: org-latex-preview-overlay-close-functions
-When ~org-latex-preview-auto-mode~ is active, the hooks
-~org-latex-preview-overlay-open-functions~ and
-~org-latex-preview-overlay-close-functions~ run when the cursor moves
-into or out of a preview overlay, respectively.  Hook functions are
-called with one argument, the overlay being "opened" or "closed".
-These hooks can be used to modify the overlay or image properties.
-
-#+vindex: org-latex-preview-live
-Continuous, live previews can be enabled by setting
-~org-latex-preview-live~ and turning on ~org-latex-preview-auto-mode~.
-~org-latex-preview-live~ can be configured to apply separately to
-LaTeX fragments and LaTeX environments.  Additionally, it can also be
-set to preview LaTeX in the Org buffer when editing it in a dedicated
-LaTeX-mode buffer with ~org-edit-special~.
-
-#+vindex: org-latex-preview-debounce
-By default, there is a delay (debounce) of 1 second between editing a
-fragment and generating a live preview.  This can be changed by
-setting ~org-latex-preview-debounce~.  Note that values of 0.1 or
-lower can cause high CPU utilization.
-
-#+vindex: org-latex-preview-live-display-type
-Finally, when editing a fragment live previews can be displayed in a
-few different locations.  The default setting displays them next to
-the LaTeX element when editing inline fragments, and under the LaTeX
-element when editing LaTeX environments.  Alternatively, the preview
-can be displayed via Eldoc in a location determined by
-~eldoc-display-functions~.  To set this customize
-~org-latex-preview-live-display-type~ and turn on ~eldoc-mode~.
+#+vindex: org-latex-preview-numbered
+When generating previews, Org mode can track equation numbers and keep
+them consistent by regenerating previews when necessary.  This
+behavior is controlled by the user option
+~org-latex-preview-numbered~.
 
 *** Using CDLaTeX to enter math
 :PROPERTIES:

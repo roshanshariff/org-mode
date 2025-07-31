@@ -31,6 +31,33 @@ the correct context (~:tangle~, ~:export~, or ~:eval~).
 This change is unlikely to affect most users, but code that directly
 accesses ~org-babel-library-of-babel~ may observe the difference.
 
+*** The LaTeX preview system has been overhauled
+
+Org mode's LaTeX preview system has been rewritten with several improvements and new features.
+
+- LaTeX Previews are generated in bulk, and hundreds of LaTeX
+  fragments can be processed per second.
+- Images are placed in the buffer continuously as they are generated.
+- Preview generation is asynchronous and will not block Emacs.
+- Inline previews are aligned and scaled to match the font baseline
+  and size.
+- Previews scale along with text when the text scale is changed.
+- Previews are coloured to match surrounding text and the active
+  theme.
+- SVG previews automatically change colors when the active theme
+  changes.
+- Error encountered when compiling LaTeX fragments can be accessed by
+  mousing over preview images.
+- Preview overlays can hide and show themselves dynamically based on
+  cursor position.
+- Org mode can auto-generate LaTeX previews as you type or edit the
+  text of existing ones.
+- Org mode can keep equation numbering consistent by regenerating
+  previews as needed.
+
+Relevant options and commands can be found via =M-x customize-group=,
+and in the Org manual.
+
 *** ~org-store-link~ no longer asks to select store function when called noninteractively
 
 Previously, when multiple store functions are available to store link
@@ -172,6 +199,29 @@ removed as part of refactoring for numeric priorities.
 # We list the most important features, and the features that may
 # require user action to be used.
 
+*** New minor mode ~org-latex-preview-mode~
+
+When this mode is turned on, moving the cursor into a previewed LaTeX
+fragment will reveal the Org markup and hide the image.  Moving the
+cursor out of the fragment will cause the (possibly updated) preview
+image to be displayed again.
+
+Additionally, if the option ~org-latex-preview-mode-track-inserts~ is
+non-nil (which see), previews for new LaTeX fragments will be
+auto-generated as they are inserted.
+
+Additionally, if the option ~org-latex-preview-mode-display-live~ is non-nil (which
+see), previews for modified or new LaTeX fragments will be displayed
+adjacent to the fragment, and updated in real-time as you type.
+
+*** New functionality for handling async process queues
+
+Org mode includes functionality for handling asynchronous process
+queues.  Other, different processes may be specified to run depending
+on whether a process succeeds (exit code 0) or fails.  See
+~org-async-call~ and its use in the ~org-latex-preview~ library for
+examples.
+
 *** All Org link types can be previewed
 :PROPERTIES:
 :CUSTOM_ID: link-preview
@@ -276,6 +326,31 @@ ditaa version of at least 0.11.0.
 # Changes dealing with changing default values of customizations,
 # adding new customizations, or changing the interpretation of the
 # existing customizations.
+
+*** New options related to =org-latex-preview=
+
+A number of options are available to customize the behavior of the new =org-latex-preview= feature.
+
+| New user option                               | Brief description                                   |
+|-----------------------------------------------+-----------------------------------------------------|
+| ~org-latex-preview-cache~                     | Preview cache location                              |
+| ~org-latex-preview-persist-expiry~            | Cache duration for LaTeX previews                   |
+| ~org-latex-preview-numbered~                  | Consistent LaTeX preview equation numbering         |
+| ~org-latex-preview-mode-track-inserts~        | Render previews when inserting LaTeX fragments      |
+| ~org-latex-preview-mode-ignored-environments~ | LaTeX environments to ignore when updating previews |
+| ~org-latex-preview-mode-ignored-commands~     | Commands to ignore when revealing LaTeX previews    |
+| ~org-latex-preview-mode-display-live~         | Preview LaTeX fragments as you type                 |
+| ~org-latex-preview-mode-update-delay~         | Update delay when previewing as you type            |
+| ~org-latex-preview-mode-display-type~         | Image position when previewing as you type          |
+| ~org-latex-preview-overlay-close-functions~   | Hook run after displaying a LaTeX preview image     |
+| ~org-latex-preview-overlay-open-functions~    | Hook run after revealing text of LaTeX preview      |
+| ~org-latex-preview-overlay-update-functions~  | Hook run when updating preview overlays             |
+| ~org-latex-preview-process-precompile~        | Precompilation to speed up LaTeX previews           |
+| ~org-latex-preview-compiler-command-map~      | Precompilation compiler settings                    |
+| ~org-latex-preview-process-active-indicator~  | visual indicator for LaTeX preview processing       |
+| ~org-latex-preview-process-finish-functions~  | Hook run after a LaTeX preview compilation process  |
+| ~org-html-latex-image-options~                | LaTeX preview image options for HTML export         |
+| ~org-odt-latex-image-options~                 | LaTeX preview image options for ODT export          |
 
 *** ~org-html-style-default~ now highlights =#+begin_src c= (lowecase) blocks
 
@@ -623,6 +698,46 @@ editing.  ~org-src-content-indentation~ also affects detangling,
 printing Org syntax tree (for example, during export to Org), and
 indentation of src and example blocks in Org buffers.
 
+*** A number of LaTeX preview options and functions have been renamed
+
+These replacements work similarly, only the names are changed.
+
+| Function                              | Replacement                          |
+|---------------------------------------+--------------------------------------|
+| ~org-clear-latex-preview~             | ~org-latex-preview-clear-overlays~   |
+| ~org-latex-color-format~              | ~org-latex-preview--format-color~    |
+| ~org-latex-color~                     | ~org-latex-preview--attr-color~      |
+| ~org-normalize-color~                 | ~org-latex-preview--normalize-color~ |
+| ~org-format-latex-mathml-available-p~ | ~org-mathml-converter-available-p~   |
+| ~org-create-math-formula~             | ~org-mathml-convert-latex~           |
+| ~org-preview-latex-image-directory~   | ~org-latex-preview-cache~           |
+| ~org-preview-latex-default-process~   | ~org-latex-preview-process-default~ |
+| ~org-format-latex-header~             | ~org-latex-preview-preamble~        |
+| ~org-latex-to-mathml-jar-file~        | ~org-mathml-converter-jar-file~     |
+| ~org-latex-to-mathml-convert-command~ | ~org-mathml-convert-command~        |
+
+~org-format-latex-options~ is marked obsolete, use
+~org-latex-preview-appearance-options~ instead.  The replacement acts
+in the same way, except that
+- the preview image render size and display size can be independently
+  controlled with the =:scale= and =:zoom= plist keys, and
+- the HTML export-specific parameters =:html-scale=,
+  =:html-foreground= and =:html-background= have been moved to
+  ~org-html-latex-image-options~, which see.
+- the new option =:page-width= controls the width of text in preview
+  images.  This is relevant for displaymath-type LaTeX environments,
+  and can be specified in multiple ways.
+
+~org-preview-latex-process-alist~ is marked obsolete, use
+~org-latex-preview-process-alist~ instead.  The replacement variable
+acts in the same way, except that =:latex-compiler= must now be a
+single command or a list containing a single command.  The placeholder
+="%S"= in the format string for =:latex-compiler= is ignored.
+
+~org-place-formula-image~ is marked obsolete.  This functionality is
+replaced with ~org-latex-preview-place~.
+
+*** Deprecated ~org-place-formula-image~ function
 *** ~org-cycle-display-inline-images~ is renamed to ~org-cycle-display-link-previews~
 
 Inline image previews in Org mode are now provided by the more general
@@ -963,160 +1078,6 @@ no longer the case.  The displayed and returned value only depends on
 the item priority now.
 
 The behavior in Org buffers is unchanged.
-If you still want to use python-mode with ob-python, you might
-consider [[https://gitlab.com/jackkamm/ob-python-mode-mode][ob-python-mode-mode]], where the code to support python-mode
-has been ported to.
-
-*** The LaTeX preview system has been overhauled
-
-Org's LaTeX preview system has been overhauled
-
-Org mode's LaTeX preview system has been rewritten with several improvements and new features.
-
-- LaTeX Previews are generated in bulk, and hundreds of LaTeX fragments can be processed per second.
-- Images are placed in the buffer continuously as they are generated.
-- Preview generation is asynchronous and will not block Emacs.
-- Inline previews are aligned and scaled to match the font baseline and size.
-- Previews scale along with text when the text scale is changed.
-- Previews are coloured to match surrounding text and the active theme.
-- SVG previews automatically change colors when the active theme changes.
-- Error encountered when compiling LaTeX fragments can be accessed by mousing over preview images.
-- Preview overlays can hide and show themselves dynamically based on cursor position.
-- Org mode can auto-generate LaTeX previews as you type or edit the text of existing ones.
-- Org mode can keep equation numbering consistent by regenerating previews as needed.
-
-**** New features
-
-***** New minor mode ~org-latex-preview-auto-mode~
-
-When this mode is turned on, LaTeX preview overlays in the buffer can be temporarily disabled by moving the cursor into them.  Moving the cursor out will display the LaTeX preview image overlay again.  Additionally, editing LaTeX fragments that have previews will cause the preview images to be updated.
-
-If the option ~org-latex-preview-auto-track-inserts~ is non-nil (which see), previews for LaTeX fragments will be auto-generated as you type.
-
-
-**** New options
-
-***** A new option ~org-latex-preview-compiler-command-map~ for setting precompile commands
-
-This alist maps compilers in ~org-latex-compilers~ to command strings
-used for LaTeX precompilation when creating previews or LaTeX exports.
-
-***** New option ~org-latex-preview-cache~ to enable preview image caching
-
-When set to =persist=, images produced using ~org-latex-preview~ will
-be cached and persisted across Emacs sessions using
-~org-persist~. Temporary or custom directories can also be used.
-
-***** New option ~org-latex-preview-persist-expiry~ to set persistence period
-
-This is the number of days for which LaTeX preview images will be
-cached, assuming persistence is turned on with
-~org-latex-preview-cache~.
-
-***** New option ~org-latex-preview-process-active-indicator~ to indicate preview processing for LaTeX fragments
-
-This option controls the style of visual indicator for LaTeX fragments
-currently being processed.
-
-***** New option ~org-latex-preview-numbered~ to automatically renumber previewed LaTeX environments
-
-When non-nil, previewed LaTeX environments in the buffer are
-renumbered automatically as required.
-
-***** New option =:page-width= in ~org-latex-preview-appearance-options~ to control the text width for LaTeX fragment previews
-
-This option controls the width of text in preview images.  This is
-relevant for displaymath-type LaTeX environments, and can be specified
-in multiple ways.
-
-***** New option ~org-latex-preview-process-precompile~ to control LaTeX precompilation
-
-This option controls whether LaTeX headers for buffers are precompiled
-when generating the first preview for the buffer.  Precompilation can
-speed up preview generation by a moderate to large amount depending on
-the complexity of the header.
-
-***** New option ~org-latex-preview-auto-track-inserts~ to auto-generate LaTeX previews when typing
-
-When using ~org-latex-preview-auto-mode~ (which see), setting this option to a non-nil value will cause LaTeX previews to be rendered as you type LaTeX fragments.  This works however new text is added to the buffer, for example by yanking.  When this option is nil and ~org-latex-preview-auto-mode~ is on, existing previews for LaTeX fragments will still be auto-regenerated when edited but no new ones will be auto-generated.
-
-**** Removed or renamed functions and variables
-
-***** Mark ~org-format-latex-options~ obsolete
-
-Use ~org-latex-preview-appearance-options~ instead.  The replacement acts in the
-same way, except that
-- the preview image render size and display size can be independently
-  controlled with the =:scale= and =:zoom= plist keys, and
-- the HTML export-specific parameters =:html-scale=,
-  =:html-foreground= and =:html-background= have been moved to
-  ~org-html-latex-image-options~, which see.
-- the new option =:page-width= (mentioned earlier)
-
-***** Mark ~org-format-latex-header~ obsolete
-
-Use ~org-latex-preview-header~ instead.  The replacement variable
-behaves the exact same way and is renamed for consistency.
-
-***** Mark ~org-preview-latex-default-process~ obsolete
-
-Use ~org-latex-preview-process-default~ instead.  The replacement
-variable behaves the exact same way and is renamed for consistency.
-
-***** Mark ~org-preview-latex-process-alist~ obsolete
-
-Use ~org-latex-preview-process-alist~ instead.  The replacement
-variable acts in the same way, except that =:latex-compiler= must now
-be a single command or a list containing a single command.  The
-placeholder ="%S"= in the format string for =:latex-compiler= is
-ignored.
-
-***** Mark ~org-clear-latex-preview~ obsolete
-
-Use ~org-latex-preview-clear-overlays~ instead.  The replacement
-function acts in the exact same way and is renamed for consistency.
-
-***** Mark ~org-place-formula-image~ obsolete
-
-This functionality is replaced with ~org-latex-preview-place-image~
-(for images) and ~org-latex-preview-place-image-link~ (for links).
-
-***** Mark ~org-latex-color-format~ obsolete
-
-Use ~org-latex-preview--format-color~ instead.  The replacement
-function acts in the exact same way and is renamed for consistency.
-
-***** Mark ~org-latex-color~ obsolete
-
-Use ~org-latex-preview--attr-color~ instead.  The replacement function
-acts in the exact same way and is renamed for consistency.
-
-***** Mark ~org-normalize-color~ obsolete
-
-Use ~org-latex-preview--normalize-color~ instead.  The replacement
-function acts in the exact same way and is renamed for consistency.
-
-***** Mark ~org-latex-to-mathml-jar-file~ obsolete
-
-Use ~org-mathml-converter-jar-file~ instead.  The replacement variable
-acts in the exact same way and is renamed for consistency.
-
-***** Mark ~org-latex-to-mathml-convert-command~ obsolete
-
-Use ~org-mathml-convert-command~ instead.  The replacement variable
-acts in the exact same way and is renamed for consistency.
-
-***** Mark ~org-format-latex-mathml-available-p~ obsolete
-
-Use ~org-mathml-converter-available-p~ instead.  The replacement
-function acts in the exact same way and is renamed for consistency.
-
-***** Mark ~org-create-math-formula~ obsolete
-
-Use ~org-mathml-convert-latex~ instead.  The replacement function acts
-in the exact same way and is renamed for consistency.
-
-
 
 *** =ox-icalendar.el= line ending fix may affect downstream packages
 
