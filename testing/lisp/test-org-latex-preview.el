@@ -235,7 +235,7 @@
     (let ((org-latex-preview-process-precompile nil)
           (org-latex-preview-cache 'temp)
           (org-latex-preview-process-default 'dvisvgm))
-      (org-latex-preview-auto-mode -1)
+      (org-latex-preview-mode -1)
       (goto-char 255)
       (let ((element (org-element-context)))
         (should (eq (org-element-type element) 'latex-environment))
@@ -270,7 +270,7 @@
     (let ((org-latex-preview-process-precompile nil)
           (org-latex-preview-cache 'temp)
           (org-latex-preview-process-default 'dvisvgm))
-      (org-latex-preview-auto-mode -1)
+      (org-latex-preview-mode -1)
       (org-latex-preview-clear-cache (point-min) (point-max))
       (let ((elements (org-latex-preview-collect-fragments)))
         (apply #'org-async-wait-for
@@ -327,7 +327,7 @@
 ;; TODO
 
 
-;; org-latex-preview-auto-mode
+;; org-latex-preview-mode
 ;; TODO
 
 
