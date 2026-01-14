@@ -786,6 +786,7 @@ This constant, for example, makes the below code not err:
   'org-format-latex-options 'org-latex-preview-appearance-options "9.7")
 (make-obsolete-variable
  'org-format-latex-signal-error "no longer used" "9.7")
+;;;###autoload (autoload 'org-latex-preview-preamble "org-latex-preview")
 (define-obsolete-variable-alias
   'org-format-latex-header 'org-latex-preview-preamble "9.7")
 (define-obsolete-variable-alias
