@@ -2291,11 +2291,10 @@ SHORT-CAPTION are strings."
 LINK is the link pointing to the inline image.  INFO is a plist
 used as a communication channel."
   (cl-assert (org-element-type-p element 'link))
-  (cl-assert (equal "file" (org-element-property :type element)))
-  (let* ((src (let ((raw-path (org-element-property :path element)))
-		(cond ((file-name-absolute-p raw-path)
-		       (expand-file-name raw-path))
-		      (t raw-path))))
+  (let* ((src (let* ((type (org-element-property :type element))
+		     (raw-path (org-element-property :path element)))
+                (if (file-name-absolute-p raw-path) raw-path
+                  (expand-file-name raw-path))))
 	 (src-expanded (if (file-name-absolute-p src) src
 			 (expand-file-name src (file-name-directory
 						(plist-get info :input-file)))))
