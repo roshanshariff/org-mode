@@ -91,7 +91,7 @@ All available processes and theirs documents can be found in
 
 ;;;###autoload
 (defcustom org-latex-preview-process-alist
-    '((dvipng
+    `((dvipng
        :programs ("latex" "dvipng")
        :description "dvi > png"
        :message "you need to install the programs: latex and dvipng."
@@ -113,7 +113,11 @@ All available processes and theirs documents can be found in
        ;; The --optimise, --clipjoin, and --relative flags cause dvisvgm to
        ;; do some extra work to tidy up the SVG output, but barely add to
        ;; the overall dvisvgm runtime (<1% increace, from testing).
-       :image-converter determined-at-runtime)
+       :image-converter
+       ,(list (concat "dvisvgm --page=1- --optimize --clipjoin --relative --no-fonts"
+                      (if (>= org-latex-preview--dvisvgm3-minor-version 2)
+                          " -v3 --message='processing page {?pageno}: output written to {?svgpath}'" "")
+                      " --bbox=preview -o %B-%%9p.svg %f")))
       (imagemagick
        :programs ("pdflatex" "convert")
        :description "pdf > png"
@@ -183,22 +187,6 @@ Place-holders only used by `:image-converter':
   :package-version '(Org . "9.7")
   :type '(alist :tag "LaTeX to image backends"
           :value-type (plist)))
-
-;; This is a bit hacky, but since we can't include reference to the
-;; runtime value of `org-latex-preview--dvisvgm3-minor-version' in the
-;; default value of `org-latex-preview-process-alist', we have to
-;; resort to modifying the value at runtime like so.
-;; Theoretically only the "load" condition is needed, but some people seemed
-;; to have problems with this that are solved by adding "eval".
-(cl-eval-when (load eval)
-  (when-let ((dvisvgm (alist-get 'dvisvgm org-latex-preview-process-alist)))
-    (when (eq (plist-get dvisvgm :image-converter) 'determined-at-runtime)
-      (plist-put dvisvgm :image-converter
-                 (list
-                  (concat "dvisvgm --page=1- --optimize --clipjoin --relative --no-fonts"
-                          (if (>= org-latex-preview--dvisvgm3-minor-version 2)
-                              " -v3 --message='processing page {?pageno}: output written to {?svgpath}'" "")
-                          " --bbox=preview -o %B-%%9p.svg %f"))))))
 
 (defcustom org-latex-preview-compiler-command-map
   '(("pdflatex" . "latex")
@@ -1954,6 +1942,7 @@ default to its values, which see.
 IMAGE-DIR, if non-nil, is a directory to contain the preview
 images.  It will be created if necessary.  If IMAGE-DIR is nil,
 image are cached as per `org-latex-preview-cache', which see."
+  (declare (indent 1))
   (let* ((preamble
           (or preamble
               org-latex-preview--preamble-content
@@ -2049,6 +2038,7 @@ STRINGS is a string or list of strings.
 
 For PREAMBLE, PROCESSING-TYPE, FOREGROUND, BACKGROUND, PAGE-WIDTH and
 SCALE see `org-latex-preview-cache-images'."
+  (declare (indent 1))
   (let* ((return-type (type-of strings))
          (strings (org-ensure-list strings))
          (preamble (or preamble
