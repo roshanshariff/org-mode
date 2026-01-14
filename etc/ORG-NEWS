@@ -698,7 +698,7 @@ editing.  ~org-src-content-indentation~ also affects detangling,
 printing Org syntax tree (for example, during export to Org), and
 indentation of src and example blocks in Org buffers.
 
-*** A number of LaTeX preview options and functions have been renamed
+*** A number of LaTeX preview options and functions have been obsoleted or changed
 
 These replacements work similarly, only the names are changed.
 

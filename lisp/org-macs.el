@@ -426,6 +426,9 @@ specification of callbacks that are themselves async tasks, e.g.
                    :success \\='(org-async-task (\"notify-send\" \"done\")))
 When using this form, all other arguments are ignored.
 
+INFO is any state to be shared between all processes in the queue.  It
+is passed as is to all process callbacks.
+
 When BUFFER is provided, the output of PROC will be directed to it.
 Shoud BUFFER be t, then a temp buffer will be created and removed
 during `org-async--cleanup-process'.
@@ -444,6 +447,36 @@ namely:
 When PROC succeeds by exiting with an exit code of zero, the SUCCESS
 callback will be run.  Should PROC fail, or be killed, or the process
 runs for more than TIMEOUT seconds, the FAILURE callback will be run.
+
+Examples:
+- Simple call with a message on success:
+  (org-async-call \"ls\" :success \"ls command succeeded\")
+
+- A call with arguments, with a function as the success callback:
+  (org-async-call '(\"du\" \"-sh\")
+    :success (lambda (_exit-code proc-buf info)
+               (with-current-buffer proc-buf
+                 (message \"Size on disk: %s\" (buffer-string))))
+    :failure \"Error: could not find or run du\")
+
+- A nested call with multiple callbacks (run in sequence), some of which
+  are org-async calls:
+  (org-async-call
+    (list
+     'org-async-task                    ; LaTeX file to dvi compilation
+     '(\"latex\" \"-interaction\" \"nonstopmode\" \"texfile.tex\")
+     :info info                         ; Shared state for the process chain
+     :failure #'latex-failure-callback
+     :success
+     (list 'org-async-task              ; dvi to svg conversion process
+           '(\"dvisvgm\" \"--page=1-\" \"-o out-%p.svg\" \"texfile.dvi\")
+           :info extended-info
+           :filter #'dvisvgm-place-previews-filter
+           :failure (list #'dvisvgm-failure-callback ; multiple callbacks
+                          #'log-errors-callback      ; run in sequence
+                          #'cleanup-callback)
+           :success (list #'check-fragments
+                          #'cleanup-callabck))))
 
 A function FILTER can be provided, in which case it will be
 called in the same manner as a normal procecss filter, however
