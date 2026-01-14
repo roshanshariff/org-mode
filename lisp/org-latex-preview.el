@@ -58,8 +58,7 @@
 ;;;###autoload
 (defcustom org-latex-preview-appearance-options
   '(:foreground auto :background "Transparent"
-    :scale 1.0 :zoom 1.0 :page-width 0.6
-    :matchers ("begin" "$1" "$" "$$" "\\(" "\\["))
+    :scale 1.0 :zoom 1.0 :page-width 0.6)
   "Options for creating images from LaTeX fragments.
 This is a property list with the following properties:
 :foreground  The foreground color for images embedded in Emacs, e.g. \"Black\".
@@ -76,15 +75,7 @@ This is a property list with the following properties:
              - A string giving a LaTeX dimension (e.g. \"12cm\").
              - A floating point value between 0.0 and 1.0,
                this sets the text width to this ratio of the page width.
-             - nil, in which case the default text width is unmodified.
-:matchers    A list indicating which matchers should be used to
-             find LaTeX fragments.  Valid members of this list are:
-             \"begin\" find environments
-             \"$1\"    find single characters surrounded by $.$
-             \"$\"     find math expressions surrounded by $...$
-             \"$$\"    find math expressions surrounded by $$....$$
-             \"\\(\"    find math expressions surrounded by \\(...\\)
-             \"\\=\\[\"    find math expressions surrounded by \\=\\[...\\]"
+             - nil, in which case the default text width is unmodified."
   :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type 'plist)

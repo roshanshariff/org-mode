@@ -352,6 +352,16 @@ A number of options are available to customize the behavior of the new =org-late
 | ~org-html-latex-image-options~                | LaTeX preview image options for HTML export         |
 | ~org-odt-latex-image-options~                 | LaTeX preview image options for ODT export          |
 
+*** New option ~org-highlight-latex-matchers~
+
+The new option ~org-highlight-latex-matchers~ can be used to specify
+which LaTeX fragments should be fontified, based on the math delimiter
+type.  This was previously controlled via the =:matchers= key in
+~org-format-latex-options~, which is now obsolete.
+
+Specifying LaTeX fragments that should be selectively previewed using
+the math delimiter type is no longer supported.
+
 *** ~org-html-style-default~ now highlights =#+begin_src c= (lowecase) blocks
 
 The default value have been changed, adding ~pre.src-c:before {

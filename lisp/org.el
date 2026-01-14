@@ -3555,6 +3555,20 @@ following symbols:
 	       (const :tag "Subscript and superscript" script)
 	       (const :tag "Entities" entities))))
 
+(defcustom org-highlight-latex-matchers '("begin" "$1" "$" "$$" "\\(" "\\[")
+  "A list indicating which matchers should be used to
+find LaTeX fragments to highlight.  Valid members of this list are:
+
+\\\"begin\\\" find environments
+\\\"$1\\\"    find single characters surrounded by $.$
+\\\"$\\\"     find math expressions surrounded by $...$
+\\\"$$\\\"    find math expressions surrounded by $$...$$
+\"\\(\"      find math expressions surrounded by \\(...\\)
+\"\\=\\[\"      find math expressions surrounded by \\=\\[...\\]"
+  :group 'org-appearance
+  :package-version '(Org . "10.0")
+  :type '(list string))
+
 (defcustom org-hide-emphasis-markers nil
   "Non-nil means font-lock should hide the emphasis marker characters."
   :group 'org-appearance
@@ -5623,11 +5637,11 @@ Result depends on variable `org-highlight-latex-and-related'."
 	(re-latex
 	 (when (or (memq 'latex org-highlight-latex-and-related)
 		   (memq 'native org-highlight-latex-and-related))
-	   (let ((matchers (plist-get org-latex-preview-appearance-options :matchers)))
-	     (delq nil
-		   (mapcar (lambda (x)
-			     (and (member (car x) matchers) (nth 1 x)))
-			   org-latex-regexps)))))
+	   (delq nil
+		 (mapcar (lambda (x)
+			   (and (member (car x) org-highlight-latex-matchers)
+                                (nth 1 x)))
+			 org-latex-regexps))))
 	(re-entities
 	 (when (memq 'entities org-highlight-latex-and-related)
 	   (list "\\\\\\(there4\\|sup[123]\\|frac[13][24]\\|[a-zA-Z]+\\)\
