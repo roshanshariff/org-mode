@@ -3335,6 +3335,11 @@ A nil value means to remove them, after a query, from the list."
     ;; inputenc and fontenc are for pdflatex only
     ("AUTO" "inputenc"  t ("pdflatex"))
     ("T1"   "fontenc"   t ("pdflatex"))
+    (""     "graphicx"  t)
+    (""     "longtable" nil)
+    (""     "wrapfig"   nil)
+    (""     "rotating"  nil)
+    ("normalem" "ulem"  t)
     ;; amsmath and amssymb after inputenc/fontenc for pdflatex
     (""     "amsmath"   t ("pdflatex"))
     (""     "amssymb"   t ("pdflatex"))
@@ -3348,12 +3353,18 @@ incompatibility with another package you are using.
 The packages in this list are needed by one part or another of
 Org mode to function properly:
 
-- amsmath: for subscript and superscript and math environments
-  (automatically added when needed with pdflatex).
 - fontspec: for font and character selection in lualatex and xetex
 - inputenc, fontenc:  for basic font and character selection
+  in pdflatex
+- graphicx: for including images
+- longtable: For multipage tables
 - wrapfig: for figure placement
 - rotating: for sideways figures and tables
+- ulem: for underline and strike-through
+- amsmath: for subscript and superscript and math environments
+- amssymb: for various symbols used for interpreting the entities
+  in `org-entities'.  You can skip some of this package if you don't
+  use any of the symbols.
 - capt-of: for captions outside of floats
 - hyperref: for cross references
 

@@ -869,7 +869,9 @@ holding export options."
      ;; Timestamp.
      (and (plist-get info :time-stamp-file)
 	  (format-time-string "%% Created %Y-%m-%d %a %H:%M\n"))
-     ;; Document class, packages, and some configuration.
+     ;; LaTeX compiler
+     (org-latex--insert-compiler info)
+     ;; Document class and packages.
      (org-latex-make-preamble info)
      ;; Define the alternative frame environment, if needed.
      (when (plist-get info :beamer-define-frame)
@@ -922,6 +924,12 @@ holding export options."
      (let ((template (plist-get info :latex-hyperref-template)))
        (and (stringp template)
 	    (format-spec template (org-latex--format-spec info))))
+     ;; engrave-faces-latex preamble
+     (when (and (eq (plist-get info :latex-src-block-backend) 'engraved)
+                (org-element-map (plist-get info :parse-tree)
+                    '(src-block inline-src-block) #'identity
+                    info t))
+       (org-latex-generate-engraved-preamble info))
      ;; Document start.
      "\\begin{document}\n\n"
      ;; Title command.
