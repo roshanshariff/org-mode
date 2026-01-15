@@ -380,6 +380,40 @@ If EXCLUDE-TMP is non-nil, ignore temporary buffers."
 
 
 ;;; Async stack
+;;
+;; The org-async API is intended for managing queues of "tasks"
+;; (external processes) asynchronously, where a "task" can be
+;; described as a tree of processes that branches on the
+;; success/failure of each process.
+;;
+;; For managing processes, it has the following advantages over using
+;; Emacs' primitives for asynchronous processes (`make-process' and
+;; associated functions):
+;;
+;; - Declarative specification: tasks may be described declaratively
+;;   as a tree of processes, capturing all the logic (based on
+;;   success/failure) in one place.
+;;
+;; - Queue management: org-async can limit the number of active
+;;   processes it manages, and kill processes that take longer than a
+;;   specified timeout
+;;
+;; - Ergonomics:
+;;   - Processes can be described as strings (for shell
+;;     commands) or a list of arguments (to use with `start-process'.)
+;;   - You can avoid writing callbacks for simple behaviors
+;;     like messaging on process completion/failure
+;;   - Callbacks can themselves be org-async task specifications
+;;   - Multiple success/failure callbacks (of different types) can be
+;;     specified in a list.
+;;   - Processes belonging to an org-async task can share state that
+;;     can be used by their process filters and callbacks.
+;;
+;; `org-async-call' is the entry point to the API to start and manage
+;; tasks.  `org-async-process-limit' and `org-async-timeout' control
+;; the number of simultaneous processes and timeout respectively.
+;; `org-async-wait-for' can be used to wait synchronously on an
+;; org-async task.
 
 (defvar org-async--stack nil
   "List of async currently running task forms.
@@ -406,7 +440,8 @@ Each queued task is represented by a list with the following structure:
 (defvar org-async-check-timeout-interval 1
   "Check for processes which have exceeded their timeout every this many seconds.")
 
-(defvar org-async--counter 0)
+(defvar org-async--counter 0
+  "Counter for process names created by `org-async-call'.")
 
 (cl-defun org-async-call (proc &key success failure filter buffer info timeout now process-variables
                                (dir default-directory) (coding 'utf-8))
@@ -426,8 +461,11 @@ specification of callbacks that are themselves async tasks, e.g.
                    :success \\='(org-async-task (\"notify-send\" \"done\")))
 When using this form, all other arguments are ignored.
 
+`org-async-call' runs up to `org-async-process-limit' simultaneous
+processes, and queues up any additional ones.
+
 INFO is any state to be shared between all processes in the queue.  It
-is passed as is to all process callbacks.
+is passed as-is to all process callbacks.
 
 When BUFFER is provided, the output of PROC will be directed to it.
 Shoud BUFFER be t, then a temp buffer will be created and removed
@@ -436,8 +474,8 @@ during `org-async--cleanup-process'.
 SUCCESS and FAILURE can be any form accepted by `org-async--execute-callback',
 namely:
 - A string, which is used a `message' string with the exit-code,
-  process-buffer, and INFO as arguments.
-- A function, which is called with exit-code, process-buffer,
+  process buffer, and INFO as arguments.
+- A function, which is called with exit-code, process buffer,
   and INFO as arguments.
 - An argument list for a new `org-async-call', whose first item is the
   symbol org-async-task.
@@ -453,7 +491,7 @@ Examples:
   (org-async-call \"ls\" :success \"ls command succeeded\")
 
 - A call with arguments, with a function as the success callback:
-  (org-async-call '(\"du\" \"-sh\")
+  (org-async-call \\='(\"du\" \"-sh\")
     :success (lambda (_exit-code proc-buf info)
                (with-current-buffer proc-buf
                  (message \"Size on disk: %s\" (buffer-string))))
@@ -463,23 +501,23 @@ Examples:
   are org-async calls:
   (org-async-call
     (list
-     'org-async-task                    ; LaTeX file to dvi compilation
-     '(\"latex\" \"-interaction\" \"nonstopmode\" \"texfile.tex\")
+     \\='org-async-task                    ; LaTeX file to DVI compilation
+     \\='(\"latex\" \"-interaction\" \"nonstopmode\" \"texfile.tex\")
      :info info                         ; Shared state for the process chain
-     :failure #'latex-failure-callback
+     :failure #\\='latex-failure-callback
      :success
-     (list 'org-async-task              ; dvi to svg conversion process
-           '(\"dvisvgm\" \"--page=1-\" \"-o out-%p.svg\" \"texfile.dvi\")
+     (list \\='org-async-task              ; dvi to svg conversion process
+           \\='(\"dvisvgm\" \"--page=1-\" \"-o out.svg\" \"texfile.dvi\")
            :info extended-info
-           :filter #'dvisvgm-place-previews-filter
-           :failure (list #'dvisvgm-failure-callback ; multiple callbacks
-                          #'log-errors-callback      ; run in sequence
-                          #'cleanup-callback)
-           :success (list #'check-fragments
-                          #'cleanup-callabck))))
+           :filter #\\='dvisvgm-place-previews-filter
+           :failure (list #\\='dvisvgm-failure-callback ; multiple callbacks
+                          #\\='log-errors-callback      ; run in sequence
+                          #\\='cleanup-callback)
+           :success (list #\\='check-fragments
+                          #\\='cleanup-callback))))
 
 A function FILTER can be provided, in which case it will be
-called in the same manner as a normal procecss filter, however
+called in the same manner as a normal process filter, however
 the function FILTER will be called with INFO as a third argument.
 i.e. the call signature is (content new-content-string INFO)
 When BUFFER is non-nil, there are two other major differences:
@@ -489,6 +527,9 @@ When BUFFER is non-nil, there are two other major differences:
 
 When CODING is non-nil, both the process encode and decode system
 will be set to CODING.  If unset, UTF-8 is used.
+
+TIMEOUT is the maximum time in seconds that a process can run for
+before it is killed.  This defaults to `org-async-timeout'.
 
 When NOW is non-nil, the PROC is started immediately, regardless
 of `org-async-process-limit'.
@@ -500,7 +541,10 @@ variables can be set), with the default value being equivalent to:
 
   :process-variables ((process-adaptive-read-buffering nil)
                       (process-connection-type nil)
-                      (read-process-output-max 65536))"
+                      (read-process-output-max 65536))
+
+To wait synchronously on asynchronous processes managed by
+`org-async-call', see `org-async-wait-for'."
   (cond
    ;; Called with a task (as can be used with callbacks), so re-call
    ;; with expanded arguments.
