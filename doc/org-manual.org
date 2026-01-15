@@ -11664,16 +11664,16 @@ To enable automatic previews, turn on the minor mode
   LaTeX fragments will be auto-generated as they are typed or
   otherwise inserted into the buffer.
 
-  #+vindex: org-latex-preview-live
+  #+vindex: org-latex-preview-mode-display-live
   Additionally, if the option ~org-latex-preview-mode-display-live~ is
   non-nil, previews for modified or new LaTeX fragments will be
   displayed adjacent to the fragment, and updated in real-time as you
   type.
 
-~org-latex-preview-mode-display-live~ can be configured to apply separately to
-LaTeX fragments and LaTeX environments.  Additionally, it can also be
-set to preview LaTeX in the Org buffer when editing it in a dedicated
-LaTeX-mode buffer with ~org-edit-special~.
+  ~org-latex-preview-mode-display-live~ can be configured to apply
+  separately to LaTeX fragments and LaTeX environments.  Additionally,
+  it can also be configured to preview LaTeX when using
+  ~org-edit-special~.
 
 **** Customizing live LaTeX previews
 
@@ -11685,11 +11685,12 @@ generate new previews as the buffer contents are changed.  This is
 controlled by the option ~org-latex-preview-mode-track-inserts~.
 
 #+vindex: org-latex-preview-mode-ignored-environments
-You can specify a list of LaTeX environments that should
-not be automatically previewed by ~org-latex-preview-mode~ when
-they are inserted into the buffer.  This is controlled by
+You can specify a list of LaTeX environments that should not be
+automatically previewed by ~org-latex-preview-mode~ when they are
+inserted into the buffer.  This is controlled by
 ~org-latex-preview-mode-ignored-environments~.  By default, "figure"
-environments are ignored by ~org-latex-preview~.
+environments are ignored by ~org-latex-preview~.[fn::
+~org-latex-preview~ cannot consistently preview figure environments.]
 
 #+vindex: org-latex-preview-mode-ignored-commands
 You can also specify Emacs commands that should explicitly avoid

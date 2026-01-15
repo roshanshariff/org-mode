@@ -783,7 +783,36 @@ This constant, for example, makes the below code not err:
   'org-latex-preview-live-debounce 'org-latex-preview-mode-update-delay "9.8")
 
 (define-obsolete-variable-alias
-  'org-format-latex-options 'org-latex-preview-appearance-options "9.7")
+  'org-format-latex-options 'org-latex-preview-appearance-options "9.7"
+  "Options for creating images from LaTeX fragments.
+This is a property list with the following properties:
+:foreground  The foreground color for images embedded in Emacs, e.g. \"Black\".
+             `default' means use the foreground of the default face.
+             `auto' means use the foreground from the text face.
+:background  The background color, or \"Transparent\".
+             `default' means use the background of the default face.
+             `auto' means use the background from the text face.
+:scale       A scaling factor for the size of the images, to get more pixels
+:zoom        when the image has associated font-relative height information,
+             the display size is scaled by this factor.
+:page-width  The width of the LaTeX document fragments are compiled in.
+             Either:
+             - A string giving a LaTeX dimension (e.g. \"12cm\").
+             - A floating point value between 0.0 and 1.0,
+               this sets the text width to this ratio of the page width.
+             - nil, in which case the default text width is unmodified.
+
+Support for the following key is obsolete, use
+`org-highlight-latex-matchers' instead.
+
+:matchers    A list indicating which matchers should be used to
+             find LaTeX fragments.  Valid members of this list are:
+             \"begin\" find environments
+             \"$1\"    find single characters surrounded by $.$
+             \"$\"     find math expressions surrounded by $...$
+             \"$$\"    find math expressions surrounded by $$....$$
+             \"\\(\"    find math expressions surrounded by \\(...\\)
+             \"\\=\\[\"    find math expressions surrounded by \\=\\[...\\]")
 (make-obsolete-variable
  'org-format-latex-signal-error "no longer used" "9.7")
 ;;;###autoload (autoload 'org-latex-preview-preamble "org-latex-preview")

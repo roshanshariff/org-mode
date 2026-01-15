@@ -5637,11 +5637,14 @@ Result depends on variable `org-highlight-latex-and-related'."
 	(re-latex
 	 (when (or (memq 'latex org-highlight-latex-and-related)
 		   (memq 'native org-highlight-latex-and-related))
-	   (delq nil
-		 (mapcar (lambda (x)
-			   (and (member (car x) org-highlight-latex-matchers)
-                                (nth 1 x)))
-			 org-latex-regexps))))
+           (let ((matchers (or org-highlight-latex-matchers
+                               ;; FIXME: Remove after deleting the
+                               ;; obsolete `org-format-latex-options'
+                               (plist-get org-latex-preview-appearance-options :matchers))))
+	     (delq nil
+		   (mapcar (lambda (x)
+			     (and (member (car x) matchers) (nth 1 x)))
+			   org-latex-regexps)))))
 	(re-entities
 	 (when (memq 'entities org-highlight-latex-and-related)
 	   (list "\\\\\\(there4\\|sup[123]\\|frac[13][24]\\|[a-zA-Z]+\\)\

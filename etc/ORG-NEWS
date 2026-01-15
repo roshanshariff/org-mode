@@ -48,6 +48,11 @@ Org mode's LaTeX preview system has been rewritten with several improvements and
   changes.
 - Error encountered when compiling LaTeX fragments can be accessed by
   mousing over preview images.
+- All of the above applies also to images generated for LaTeX
+  fragments in HTML and ODT exports using the dvisvgm and dvipng
+  methods.
+
+Additionally,
 - Preview overlays can hide and show themselves dynamically based on
   cursor position.
 - Org mode can auto-generate LaTeX previews as you type or edit the
@@ -55,8 +60,8 @@ Org mode's LaTeX preview system has been rewritten with several improvements and
 - Org mode can keep equation numbering consistent by regenerating
   previews as needed.
 
-Relevant options and commands can be found via =M-x customize-group=,
-and in the Org manual.
+Relevant options and commands can be found via =M-x customize-group=
+=org-latex-preview=, and in the Org manual.
 
 *** ~org-store-link~ no longer asks to select store function when called noninteractively
 
@@ -737,6 +742,10 @@ in the same way, except that
 - the new option =:page-width= controls the width of text in preview
   images.  This is relevant for displaymath-type LaTeX environments,
   and can be specified in multiple ways.
+- ~org-latex-preview-appearance-options~ does not support specifying
+  the =:matchers= key from ~org-format-latex-options~.  To specify
+  LaTeX fragment types for fontification, use the new option
+  ~org-highlight-latex-matchers~ instead.
 
 ~org-preview-latex-process-alist~ is marked obsolete, use
 ~org-latex-preview-process-alist~ instead.  The replacement variable
