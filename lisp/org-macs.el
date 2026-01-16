@@ -440,11 +440,8 @@ Each queued task is represented by a list with the following structure:
 (defvar org-async-check-timeout-interval 1
   "Check for processes which have exceeded their timeout every this many seconds.")
 
-(defvar org-async--counter 0
-  "Counter for process names created by `org-async-call'.")
-
-(cl-defun org-async-call (proc &key success failure filter buffer info timeout now process-variables
-                               (dir default-directory) (coding 'utf-8))
+(cl-defun org-async-call (proc &key success failure filter buffer info timeout now
+                               process-variables (dir default-directory) (coding 'utf-8))
   "Start PROC and register it with callbacks SUCCESS and FAILURE.
 
 PROC can be a process, string, or list.  A string will be run as
@@ -574,12 +571,9 @@ call `org-async-wait-for' on the output result of `org-async-call':
                  (proc-buf (if (eq buffer t) (generate-new-buffer " *temp*" t) buffer)))
              (cond ((processp proc) proc)
                    ((stringp proc)
-                    (start-process-shell-command
-                     (format "org-async-%d" (cl-incf org-async--counter)) proc-buf proc))
+                    (start-process-shell-command "org-async" proc-buf proc))
                    ((consp proc)
-                    (apply #'start-process
-                           (format "org-async-%s-%d"
-                                   (car proc) (cl-incf org-async--counter))
+                    (apply #'start-process (format "org-async-%s" (car proc))
                            proc-buf proc))
                    (t (error "Async process input %S not a recognised format"
                              proc)))))
