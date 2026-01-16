@@ -468,8 +468,8 @@ INFO is any state to be shared between all processes in the queue.  It
 is passed as-is to all process callbacks.
 
 When BUFFER is provided, the output of PROC will be directed to it.
-Shoud BUFFER be t, then a temp buffer will be created and removed
-during `org-async--cleanup-process'.
+Shoud BUFFER be t, then a temp buffer will be created for the process
+and removed during `org-async--cleanup-process'.
 
 SUCCESS and FAILURE can be any form accepted by `org-async--execute-callback',
 namely:
@@ -539,12 +539,22 @@ let-style bindings that should be applied to the process.
 Variables are supported on an individual basis (i.e. only certain
 variables can be set), with the default value being equivalent to:
 
-  :process-variables ((process-adaptive-read-buffering nil)
-                      (process-connection-type nil)
-                      (read-process-output-max 65536))
+  :process-variables
+  ((process-adaptive-read-buffering process-adaptive-read-buffering)
+   (process-connection-type process-connection-type)
+   (read-process-output-max read-process-output-max))
 
-To wait synchronously on asynchronous processes managed by
-`org-async-call', see `org-async-wait-for'."
+Returns a list of the form (PROCESS . PLIST), where
+- PROCESS is the process if it was started, or PROC if the queue is
+  full.
+- PLIST is a plist with keys SUCCESS, FAILURE, FILTER, BUFFER, INFO,
+  CODING, TIMEOUT and START-TIME (number of seconds since the epoch,
+  included only if the process was started).
+
+To wait synchronously on asynchronous processes managed by org-async,
+call `org-async-wait-for' on the output result of `org-async-call':
+
+  (org-async-wait-for (org-async-call ...))"
   (cond
    ;; Called with a task (as can be used with callbacks), so re-call
    ;; with expanded arguments.
@@ -560,17 +570,17 @@ To wait synchronously on asynchronous processes managed by
                  (process-connection-type ; Use a pipe by default
                   (cadr (or (assoc 'process-connection-type process-variables) nil)))
                  (read-process-output-max ; Can be worth changing depending on the process
-                  (or (assq 'read-process-output-max process-variables) read-process-output-max)))
+                  (or (assq 'read-process-output-max process-variables) read-process-output-max))
+                 (proc-buf (if (eq buffer t) (generate-new-buffer " *temp*" t) buffer)))
              (cond ((processp proc) proc)
                    ((stringp proc)
                     (start-process-shell-command
-                     (format "org-async-%d" (cl-incf org-async--counter))
-                     buffer proc))
+                     (format "org-async-%d" (cl-incf org-async--counter)) proc-buf proc))
                    ((consp proc)
                     (apply #'start-process
                            (format "org-async-%s-%d"
                                    (car proc) (cl-incf org-async--counter))
-                           buffer proc))
+                           proc-buf proc))
                    (t (error "Async process input %S not a recognised format"
                              proc)))))
           (timeout (or timeout org-async-timeout)))
@@ -583,11 +593,10 @@ To wait synchronously on asynchronous processes managed by
                   :success success
                   :failure failure
                   :filter filter
-                  :buffer (if (eq buffer t)
-                              (cons :temp (generate-new-buffer " *temp*" t))
-                            buffer)
+                  :buffer buffer
                   :info info
                   :timeout timeout
+                  :coding coding
                   :start-time (float-time))
             org-async--stack)
       (org-async--monitor t)
@@ -605,7 +614,7 @@ To wait synchronously on asynchronous processes managed by
                               :dir dir
                               :timeout timeout
                               :coding coding))))
-    (last org-async--wait-queue))))
+    (car (last org-async--wait-queue)))))
 
 (defvar org-async--blocking-tasks nil
   "List of async tasks currently being waited on.")
@@ -621,11 +630,11 @@ To wait synchronously on asynchronous processes managed by
   "After PROCESS recieves STRING, call the async filter.
 This is implementated to satisfy the filter function documentation in
 `org-async-call'."
-  (when-let ((proc-info (alist-get process org-async--stack)))
+  (when-let* ((proc-info (alist-get process org-async--stack)))
     (let ((filter (plist-get proc-info :filter))
-          (buffer (plist-get proc-info :buffer)))
-      (if buffer
-          (with-current-buffer buffer
+          (proc-buf (process-buffer process)))
+      (if proc-buf
+          (with-current-buffer proc-buf
             (save-excursion
               (goto-char (point-max))
               (insert string))
@@ -652,14 +661,13 @@ the success callback is run (via `org-async--execute-callback').
 Otherwise, the failure callback is run."
   (when (assq process org-async--stack)
     (let* ((proc-info (cdr (assq process org-async--stack)))
-           (buffer-val (plist-get proc-info :buffer))
-           (proc-buf (if (consp buffer-val) (cdr buffer-val) buffer-val))
+           (proc-buf (process-buffer process))
            (blocking-p (cl-member process org-async--blocking-tasks :key #'car)))
-      (setq org-async--stack
-            (delq (assq process org-async--stack) org-async--stack))
       ;; Ensure that any filter is called on the final output
       ;; prior to the callbacks.
       (while (accept-process-output process))
+      (setq org-async--stack
+            (delq (assq process org-async--stack) org-async--stack))
       (org-async--execute-callback
        (plist-get
         proc-info
@@ -673,10 +681,9 @@ Otherwise, the failure callback is run."
       (when blocking-p
         (setq org-async--blocking-tasks
               (cl-delete process org-async--blocking-tasks :key #'car)))
-      (when (and (consp buffer-val) (eq :temp (car buffer-val)))
-        (kill-buffer proc-buf)))
+      (when (eq (plist-get proc-info :buffer) t) (kill-buffer proc-buf)))
     (when (and org-async--wait-queue
-               (< org-async-process-limit (length org-async--stack)))
+               (< (length org-async--stack) org-async-process-limit))
       (apply #'org-async-call (pop org-async--wait-queue)))))
 
 (defun org-async--execute-callback (callback exit-code process-buffer info &optional blocking)
@@ -708,12 +715,16 @@ When BLOCKING is set, all callback tasks are made blocking."
    ((null callback)) ; Do nothing.
    (t (message "Ignoring invalid `org-async-call' callback: %S" callback))))
 
-(defvar org-async--monitor-scheduled nil)
+(defvar org-async--monitor-scheduled nil
+  "Timer for checking the org-async process queue.")
+
 (defun org-async--monitor (&optional force)
-  "Check each process against their timeouts, and kill any overdue.
-The only runs when `org-async--monitor-scheduled' is nil, unless FORCE is set.
-Should any processes still be alive after checking the stack, this will run
-itself using a timer in `org-async-check-timeout-interval' seconds."
+  "Check each process against their timeouts, and kill any overdue processes.
+
+This only runs when `org-async--monitor-scheduled' is nil, unless FORCE
+is set.  Should any processes still be alive after checking the stack,
+this will run itself using a timer in `org-async-check-timeout-interval'
+seconds."
   (when (or force (null org-async--monitor-scheduled))
     (dolist (stack-proc org-async--stack)
       (if (process-live-p (car stack-proc))
