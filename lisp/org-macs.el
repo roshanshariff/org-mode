@@ -444,11 +444,13 @@ Each queued task is represented by a list with the following structure:
                                process-variables (dir default-directory) (coding 'utf-8))
   "Start PROC and register it with callbacks SUCCESS and FAILURE.
 
-PROC can be a process, string, or list.  A string will be run as
-a shell command, with `start-process-shell-command' and a list
-run using `start-process' with the car as the command and the cdr
-as the arguments.  The process will be executed in DIR (if set)
-or `default-directory'.
+PROC can be a process, string, or list.
+
+A string will be run as a shell command, with
+`start-process-shell-command'.  A list will be run using
+`start-process', with the car of the list being the program and the cdr
+the list of program arguments.  The process will be executed in DIR (if
+set) or `default-directory'.
 
 There is also a \"special form\" of PROC, namely a list where the
 first item is the symbol org-async-task, and the rest constitutes
@@ -537,8 +539,8 @@ Variables are supported on an individual basis (i.e. only certain
 variables can be set), with the default value being equivalent to:
 
   :process-variables
-  ((process-adaptive-read-buffering process-adaptive-read-buffering)
-   (process-connection-type process-connection-type)
+  ((process-adaptive-read-buffering nil)
+   (process-connection-type nil)
    (read-process-output-max read-process-output-max))
 
 Returns a list of the form (PROCESS . PLIST), where
