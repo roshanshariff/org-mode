@@ -1753,7 +1753,6 @@ INFO is the current state of the export process, as a plist."
   "Return close-tag for string TAG.
 ATTR specifies additional attributes.  INFO is a property list
 containing current export state."
-  (declare (indent 1))
   (concat "<" tag
 	  (org-string-nw-p (concat " " attr))
 	  (if (org-html-xhtml-p info) " />" ">")))
@@ -3187,12 +3186,20 @@ containing image paths and metadata used for display."
           (plist-put info :html-latex-preview-hash-table element-preview-hash-table))))))
 
 (defun org-html--as-latex (element info &optional content)
+  "Dispatch on ELEMENT, a LaTeX fragment or environment, using INFO.
+
+Depending on the LaTeX handling directive in INFO, LaTeX elements are
+exported verbatim or as HTML, or using MathJax, MathMl or a process from
+`org-latex-preview-process-alist'.
+
+If provided, CONTENT is the string to use instead of the contents of
+ELEMENT."
   (let ((content (or content (org-element-property :value element))))
     (pcase (plist-get info :with-latex)
-      ('verbatim ; Do nothing.
+      ('verbatim                        ; Do nothing.
        content)
       ((or 't 'mathjax)
-       (cond ; Prepare for MathJax processing.
+       (cond                         ; Prepare for MathJax processing.
         ((string-match-p "\\`\\$\\$" content)
          (concat "\\[" (substring content 2 -2) "\\]"))
         ((string-match-p "\\`\\$" content)
