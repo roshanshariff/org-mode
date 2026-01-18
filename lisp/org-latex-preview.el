@@ -37,9 +37,6 @@
 (declare-function org-persist-unregister "org-persist")
 (declare-function eldoc--invoke-strategy "eldoc")
 
-(defvar org-src-mode-hook nil)
-(defvar org-src--beg-marker nil)
-
 (defvar org-latex-preview--dvisvgm3-minor-version
   (or (and (executable-find "dvisvgm")
            (with-temp-buffer
@@ -341,8 +338,6 @@ See `org-latex-preview-process-active-indicator'."
   "Buffer name for Preview image conversion output.")
 (defconst org-latex-preview--latex-log "*Org Preview LaTeX Output*"
   "Buffer name for Preview LaTeX output.")
-(defconst org-latex-preview--precompile-log "*Org Preview Preamble Precompilation*"
-  "Buffer name for Preview LaTeX precompile output.")
 
 (defconst org-latex-preview--temp-cache-dir
   (expand-file-name "org-latex-preview" temporary-file-directory)
@@ -363,6 +358,7 @@ appears on the page.  The package defined in the variables
 will either replace the placeholder \"[PACKAGES]\" in this
 header, or they will be appended."
   :group 'org-latex-preview
+  :package-version '(Org . "10.0")
   :type 'string)
 
 (defcustom org-latex-preview-process-precompile t
@@ -910,11 +906,11 @@ customize the variable `org-latex-preview-mode-display-live'."
 ;; Code for "live" preview generation
 ;;
 ;; When `org-latex-preview-mode' is turned on and
-;; `org-latex-preview-mode-display-live' is non-nil, previews are generated in the
-;; background with each change to the LaTeX fragment being edited.
-;; This continuously updated preview is shown to the right of the
-;; LaTeX fragment, or under the LaTeX environment being edited.
-;; Alternatively, it can be shown using Eldoc (see
+;; `org-latex-preview-mode-display-live' is non-nil, previews are
+;; generated in the background with each change to the LaTeX fragment
+;; being edited.  This continuously updated preview is shown to the
+;; right of the LaTeX fragment, or under the LaTeX environment being
+;; edited.  Alternatively, it can be shown using Eldoc (see
 ;; `org-latex-preview-mode-display-type').
 ;;
 ;; The code works as follows (simplified description):
@@ -936,6 +932,13 @@ customize the variable `org-latex-preview-mode-display-live'."
 ;;
 ;; - When the cursor exits the boundaries of the fragment, the
 ;;   `after-string' property of the preview overlay is removed.
+;;
+;; - Preview images for live previews of fragments in "intermediate"
+;;   states, before the fragment is exited, are stored in
+;;   `org-latex-preview-live--cache-dir' instead of
+;;   `org-latex-preview-cache'.  This cache rolls over when
+;;   `org-latex-preview-live--max-cache-count' live-preview images
+;;   have been accumulated.
 
 (defvar-local org-latex-preview-live--docstring " "
   "String that holds the live LaTeX preview image as a text property.")
@@ -1094,7 +1097,7 @@ Ensures that FUNC runs at the end of the throttle duration."
   (when-let ((org-latex-preview-live--last-hash)
              ((overlay-get ov 'preview-image))
              (path-info (org-latex-preview--get-cached
-                      org-latex-preview-live--last-hash 'live)))
+                         org-latex-preview-live--last-hash 'live)))
     ;; Copy final image data to main cache location
     (when (equal (file-name-directory (car path-info))
                  org-latex-preview-live--cache-dir)
@@ -1196,6 +1199,7 @@ over the original fragment.  Otherwise previews are displayed in
 the org-src buffer.
 
 This is meant to be called via `org-src-mode-hook'."
+  (defvar org-src--beg-marker)
   (when (and (equal major-mode (org-src-get-lang-mode "latex"))
              (buffer-local-value 'org-latex-preview-mode
                                  (marker-buffer org-src--beg-marker))
