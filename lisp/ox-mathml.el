@@ -1,21 +1,28 @@
 ;;; ox-mathml.el --- Support for MathML exports -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2023 TEC
+;; Copyright (C) 2023-2026 Free Software Foundation, Inc.
 ;;
-;; Author: TEC <contact@tecosaur.net>
 ;; Maintainer: TEC <contact@tecosaur.net>
 ;; Created: February 27, 2023
-;; Modified: February 27, 2023
-;; Version: 0.0.1
-;; Keywords: abbrev bib c calendar comm convenience data docs emulations extensions faces files frames games hardware help hypermedia i18n internal languages lisp local maint mail matching mouse multimedia news outlines processes terminals tex tools unix vc wp
-;; Homepage: https://github.com/tecosaur/ox-mathml
-;; Package-Requires: ((emacs "24.3"))
 ;;
 ;; This file is not part of GNU Emacs.
-;;
+
+;; GNU Emacs is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; GNU Emacs is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
+
 ;;; Commentary:
 ;;
-;;  Support for MathML exports
+;;  This library implements support for MathML exports.
 ;;
 ;;; Code:
 
@@ -145,7 +152,9 @@ inspection."
     mathml))
 
 (defun org-mathml-convert-latex-cached (latex-frag)
-  "Use `org-mathml-convert-latex' but check local cache first."
+  "Use `org-mathml-convert-latex' for LATEX-FRAG.
+
+Check local cache first."
   (let ((latex-hash-path
          (expand-file-name
           (concat

@@ -18,6 +18,11 @@ Please send Org bug reports to mailto:emacs-orgmode@gnu.org.
 # require user action for most Org mode users.
 # Sorted from most important to least important.
 
+*** New library =ox-mathml= implements support for MathML exports
+
+This library is composed of code from and provides functionality that
+was previously spread across =org=, =ox-html= and =ox-odt=.
+
 *** ~org-babel-lob-ingest~ no longer performs noweb expansion when ingesting blocks
 
 Previously, ~org-babel-lob-ingest~ would expand noweb references when
