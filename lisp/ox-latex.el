@@ -2018,6 +2018,16 @@ INFO is a plist used as a communication channel."
 
 ;;; Template
 
+(defcustom org-latex-precompile nil
+  "Whether to precompile the preamble during export.
+
+LaTeX export can be considerably faster with a precompiled preamble.
+This requires the LaTeX package \"mylatexformat\" to be installed."
+  :group 'org-export-latex
+  :package-version '(Org . "10.0")
+  :type 'boolean
+  :safe #'booleanp)
+
 ;;;###autoload
 (defun org-latex-make-preamble (info &optional template snippet?)
   "Return a formatted LaTeX preamble.
@@ -2162,11 +2172,8 @@ holding export options."
      ;; Document end.
      "\\end{document}")))
 
-(defvar org-latex-precompile t
-  "Precompile the preamble during export.
-This requires the LaTeX package \"mylatexformat\" to be installed.")
-
-(defconst org-latex--precompile-log "*Org LaTeX Precompilation*")
+(defconst org-latex--precompile-log "*Org LaTeX Precompilation*"
+  "Buffer name for LaTeX precompile output.")
 
 (defvar org-latex-precompile-command
   "%l -output-directory %o -ini -jobname=%b \"&%L\" mylatexformat.ltx %f"
