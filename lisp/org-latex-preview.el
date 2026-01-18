@@ -98,7 +98,6 @@ All available processes and theirs documents can be found in
        :image-input-type "dvi"
        :image-output-type "png"
        :latex-compiler ("%l -interaction nonstopmode -output-directory %o %f")
-       :latex-precompiler ("%l -output-directory %o -ini -jobname=%b \"&%L\" mylatexformat.ltx %f")
        :image-converter ("dvipng --follow -D %D -T tight --depth --height -o %B-%%09d.png %f")
        :transparent-image-converter
        ("dvipng --follow -D %D -T tight -bg Transparent --depth --height -o %B-%%09d.png %f"))
@@ -109,7 +108,6 @@ All available processes and theirs documents can be found in
        :image-input-type "dvi"
        :image-output-type "svg"
        :latex-compiler ("%l -interaction nonstopmode -output-directory %o %f")
-       :latex-precompiler ("%l -output-directory %o -ini -jobname=%b \"&%L\" mylatexformat.ltx %f")
        ;; The --optimise, --clipjoin, and --relative flags cause dvisvgm to
        ;; do some extra work to tidy up the SVG output, but barely add to
        ;; the overall dvisvgm runtime (<1% increace, from testing).
@@ -125,7 +123,6 @@ All available processes and theirs documents can be found in
        :image-input-type "pdf"
        :image-output-type "png"
        :latex-compiler ("pdflatex -interaction nonstopmode -output-directory %o %f")
-       :latex-precompiler ("pdftex -output-directory %o -ini -jobname=%b \"&pdflatex\" mylatexformat.ltx %f")
        :image-converter
        ("convert -density %D -trim -antialias %f -quality 100 %B-%%09d.png")))
   "Definitions of external processes for LaTeX previewing.
@@ -167,15 +164,14 @@ PROPERTIES accepts the following attributes:
 If set, :transparent-image-converter is used instead of :image-converter to
 convert an image when the background color is nil or \"Transparent\".
 
-Place-holders used by `:image-converter', `:latex-precompiler',
-and `:latex-compiler':
+Place-holders used by `:image-converter' and `:latex-compiler':
 
   %f    input file name
   %b    base name of input file
   %o    base directory of input file
   %O    absolute output file name
 
-Place-holders only used by `:latex-precompiler' and `:latex-compiler':
+Place-holders only used by `:latex-compiler':
 
   %l   LaTeX compiler command string
   %L   LaTeX compiler command name
@@ -345,7 +341,7 @@ See `org-latex-preview-process-active-indicator'."
 (defconst org-latex-preview--latex-log "*Org Preview LaTeX Output*"
   "Buffer name for Preview LaTeX output.")
 (defconst org-latex-preview--precompile-log "*Org Preview Preamble Precompilation*"
-  "Buffer name for Preview LaTeX output.")
+  "Buffer name for Preview LaTeX precompile output.")
 
 (defconst org-latex-preview--temp-cache-dir
   (expand-file-name "org-latex-preview" temporary-file-directory)
@@ -3169,12 +3165,22 @@ the *entire* preview cache will be cleared, and `org-persist-gc' run."
     (or org-latex-preview--preamble-content
         (setq org-latex-preview--preamble-content
               (org-latex-preview--get-preamble)))
-    (let ((full-preamble
-           (concat org-latex-preview--preamble-content
-                   org-latex-preview--include-preview-string)))
+    (let* ((full-preamble
+            (concat org-latex-preview--preamble-content
+                    org-latex-preview--include-preview-string))
+           (compilers (assoc org-latex-compiler
+                             org-latex-preview-compiler-command-map))
+           (latex-precompiler
+            (if (string= (thread-first (alist-get org-latex-preview-process-default
+                                                  org-latex-preview-process-alist)
+                                       (plist-get :image-input-type))
+                         "pdf")
+                (car compilers) (cdr compilers))))
       (dolist (compiler org-latex-compilers)
-        (org-latex--remove-cached-preamble compiler full-preamble nil)
-        (org-latex--remove-cached-preamble compiler full-preamble t))))
+        (org-latex--remove-cached-preamble
+         compiler full-preamble nil latex-precompiler)
+        (org-latex--remove-cached-preamble
+         compiler full-preamble t latex-precompiler))))
   (org-latex-preview-clear-overlays beg end)
   (if clear-entire-cache
       (let ((n 0))
@@ -3242,19 +3248,18 @@ not contain any relative references to other files.
 This is intended to speed up Org's LaTeX preview generation
 process."
   (org-latex--precompile
-   (list :latex-compiler (plist-get processing-info :latex-processor)
-         :precompile-format-spec
-         (let* ((compilers
-                 (assoc (plist-get processing-info :latex-processor)
-                        org-latex-preview-compiler-command-map))
-                (org-tex-compiler
-                 (if (string= (plist-get processing-info :image-input-type) "pdf")
-                     (car compilers)
-                   (cdr compilers))))
-           `((?l . ,org-tex-compiler)
-             (?L . ,(car (split-string org-tex-compiler))))))
+   (list :latex-compiler (plist-get processing-info :latex-processor))
    preamble
-   tempfile-p))
+   tempfile-p
+   (let* ((compilers
+           (assoc (plist-get processing-info :latex-processor)
+                  org-latex-preview-compiler-command-map))
+          (org-tex-compiler
+           (if (string= (plist-get processing-info :image-input-type) "pdf")
+               (car compilers)
+             (cdr compilers))))
+     `((?l . ,org-tex-compiler)
+       (?L . ,(car (split-string org-tex-compiler)))))))
 
 (defun org-latex-preview--tex-styled (processing-type value appearance-options)
   "Apply LaTeX style commands to VALUE based on APPEARANCE-OPTIONS.
