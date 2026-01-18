@@ -866,12 +866,7 @@ holding export options."
   (let ((title (org-export-data (plist-get info :title) info))
 	(subtitle (org-export-data (plist-get info :subtitle) info)))
     (concat
-     ;; Timestamp.
-     (and (plist-get info :time-stamp-file)
-	  (format-time-string "%% Created %Y-%m-%d %a %H:%M\n"))
-     ;; LaTeX compiler
-     (org-latex--insert-compiler info)
-     ;; Document class and packages.
+     ;; Timestamp, compiler command, document class and packages
      (org-latex-make-preamble info)
      ;; Define the alternative frame environment, if needed.
      (when (plist-get info :beamer-define-frame)

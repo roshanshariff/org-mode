@@ -2028,32 +2028,62 @@ non-nil, only includes packages relevant to image generation, as
 specified in `org-latex-default-packages-alist' or
 `org-latex-packages-alist'."
   (let* ((class (plist-get info :latex-class))
-	 (class-template
-	  (or template
-	      (let* ((class-options (plist-get info :latex-class-options))
-		     (header (nth 1 (assoc class (plist-get info :latex-classes)))))
-		(and (stringp header)
-		     (if (not class-options) header
-		       (replace-regexp-in-string
-			"^[ \t]*\\\\documentclass\\(\\(\\[[^]]*\\]\\)?\\)"
-			class-options header t nil 1))))
-	      (user-error "Unknown LaTeX class `%s'" class))))
-    (org-latex-guess-polyglossia-language
-     (org-latex-guess-babel-language
-      (org-latex-guess-inputenc
-       (org-element-normalize-string
-	(org-splice-latex-header
-	 class-template
-	 (org-latex--remove-packages org-latex-default-packages-alist info)
-	 (org-latex--remove-packages org-latex-packages-alist info)
-	 snippet?
-	 (mapconcat #'org-element-normalize-string
-		    (list (plist-get info :latex-header)
-			  (and (not snippet?)
-			       (plist-get info :latex-header-extra)))
-		    ""))))
-      info)
-     info)))
+         (class-template
+          (or template
+              (let* ((class-options (plist-get info :latex-class-options))
+                     (header (nth 1 (assoc class (plist-get info :latex-classes)))))
+                (and (stringp header)
+                     (if (not class-options) header
+                       (replace-regexp-in-string
+                        "^[ \t]*\\\\documentclass\\(\\(\\[[^]]*\\]\\)?\\)"
+                        class-options header t nil 1))))
+              (user-error "Unknown LaTeX class `%s'" class)))
+         ;; Expanded preamble text for the Org buffer
+         (header (org-latex-guess-polyglossia-language
+                  (org-latex-guess-babel-language
+                   (org-latex-guess-inputenc
+                    (org-element-normalize-string
+                     (org-splice-latex-header
+                      class-template
+                      (org-latex--remove-packages org-latex-default-packages-alist info)
+                      (org-latex--remove-packages org-latex-packages-alist info)
+                      snippet?
+                      (mapconcat #'org-element-normalize-string
+                                 (list (plist-get info :latex-header)
+                                       (and (not snippet?)
+                                            (plist-get info :latex-header-extra)))
+                                 ""))))
+                   info)
+                  info)))
+    (let* ((preamble (concat (org-latex--insert-compiler info) header "\n"))
+           (format-file
+            (and org-latex-precompile
+                 ;; Precompilation is disabled for xelatex/lualatex for now.
+                 (if (member (plist-get info :latex-compiler)
+                             '("xelatex" "lualatex"))
+                     (progn
+                       (display-warning
+                        '(org latex-export disable-local-precompile)
+                        (format "%s does not support precompilation, disabling LaTeX precompile in this buffer.
+To re-enable, run `(setq-local org-latex-precompile t)' or reopen this buffer."
+                                (plist-get info :latex-compiler)))
+                       (when-let* ((input-buffer (plist-get info :input-buffer))
+                                   ((buffer-live-p input-buffer)))
+                         (setf (buffer-local-value
+                                'org-latex-precompile (get-buffer input-buffer))
+                               nil)))
+                   (org-latex--precompile
+                    info preamble
+                    (string-match-p "\\(?:\\\\input{\\|\\\\include{\\)[^/]" preamble))))))
+      ;; Return (path to format-file OR full preamble text) + compiler statement + timestamp
+      ;; If using format-file, it should be the first line of the tex file.
+      (concat (and format-file (concat "%& " (file-name-sans-extension format-file) "\n"))
+              (and (plist-get info :time-stamp-file)
+                   (format-time-string "%% Created %Y-%m-%d %a %H:%M\n"))
+              (if format-file
+                  "\n% end precompiled preamble\n\\ifcsname endofdump\\endcsname\\endofdump\\fi\n"
+                preamble)
+              "\n"))))
 
 (defun org-latex-template (contents info)
   "Return complete document string after LaTeX conversion.
@@ -2062,12 +2092,7 @@ holding export options."
   (let ((title (org-export-data (plist-get info :title) info))
 	(spec (org-latex--format-spec info)))
     (concat
-     ;; Timestamp.
-     (and (plist-get info :time-stamp-file)
-	  (format-time-string "%% Created %Y-%m-%d %a %H:%M\n"))
-     ;; LaTeX compiler.
-     (org-latex--insert-compiler info)
-     ;; Document class and packages.
+     ;; Timestamp, compiler statement, document class and packages.
      (org-latex-make-preamble info)
      ;; Possibly limit depth for headline numbering.
      (let ((sec-num (plist-get info :section-numbers)))
