@@ -564,8 +564,6 @@ Counting starts at 1."
   'org-remove-indentation "9.0")
 (define-obsolete-variable-alias 'org-latex-create-formula-image-program
   'org-preview-latex-default-process "9.0")
-(define-obsolete-variable-alias 'org-latex-preview-ltxpng-directory
-  'org-preview-latex-image-directory "9.0")
 (define-obsolete-variable-alias 'org-latex-listings
   'org-latex-src-block-backend "9.6")
 (define-obsolete-function-alias 'org-table-p 'org-at-table-p "9.0")
@@ -621,9 +619,6 @@ Counting starts at 1."
 
 (define-obsolete-function-alias 'org-toggle-latex-fragment 'org-latex-preview
   "9.3")
-
-(define-obsolete-function-alias 'org-remove-latex-fragment-image-overlays
-  'org-clear-latex-preview "9.3")
 
 (define-obsolete-function-alias 'org-hide-archived-subtrees
   'org-fold-hide-archived-subtrees "9.6")
@@ -815,7 +810,44 @@ Support for the following key is obsolete, use
              \"\\=\\[\"    find math expressions surrounded by \\=\\[...\\]")
 (make-obsolete-variable
  'org-format-latex-signal-error "no longer used" "9.7")
-;;;###autoload (autoload 'org-latex-preview-preamble "org-latex-preview")
+
+(defcustom org-format-latex-header "\\documentclass{article}
+\\usepackage[usenames]{color}
+\[DEFAULT-PACKAGES]
+\[PACKAGES]
+\\pagestyle{empty}             % do not remove
+% The settings below are copied from fullpage.sty
+\\setlength{\\textwidth}{\\paperwidth}
+\\addtolength{\\textwidth}{-3cm}
+\\setlength{\\oddsidemargin}{1.5cm}
+\\addtolength{\\oddsidemargin}{-2.54cm}
+\\setlength{\\evensidemargin}{\\oddsidemargin}
+\\setlength{\\textheight}{\\paperheight}
+\\addtolength{\\textheight}{-\\headheight}
+\\addtolength{\\textheight}{-\\headsep}
+\\addtolength{\\textheight}{-\\footskip}
+\\addtolength{\\textheight}{-3cm}
+\\setlength{\\topmargin}{1.5cm}
+\\addtolength{\\topmargin}{-2.54cm}"
+  "The document header used for processing LaTeX fragments.
+It is imperative that this header make sure that no page number
+appears on the page.  The package defined in the variables
+`org-latex-default-packages-alist' and `org-latex-packages-alist'
+will either replace the placeholder \"[PACKAGES]\" in this
+header, or they will be appended."
+  :group 'org-latex
+  :type 'string)
+
+(make-obsolete-variable
+ 'org-format-latex-header
+ "To set the preamble for generating LaTeX preview images, use
+`org-latex-preview-preamble' instead.
+
+To generate images from LaTeX fragments programmatically use
+`org-latex-preview-create-images' instead of
+`org-create-formula-image'."
+ "10.0")
+
 (define-obsolete-variable-alias
   'org-format-latex-header 'org-latex-preview-preamble "9.7")
 (define-obsolete-variable-alias
@@ -832,9 +864,6 @@ Support for the following key is obsolete, use
 ;;;###autoload (autoload 'org-latex-preview--attr-color "org-latex-preview")
 (define-obsolete-function-alias
   'org-latex-color 'org-latex-preview--attr-color "9.7")
-;;;###autoload (autoload 'org-latex-preview--get-display-dpi "org-latex-preview")
-(define-obsolete-function-alias
-  'org--get-display-dpi 'org-latex-preview--get-display-dpi "9.7")
 ;; MathML related functions from org-latex-preview.el
 (define-obsolete-variable-alias
   'org-latex-to-mathml-jar-file 'org-mathml-converter-jar-file "9.7")
@@ -909,7 +938,9 @@ images at the same place."
   :type 'string)
 
 (make-obsolete-variable
- 'org-preview-latex-image-directory 'org-latex-preview-cache "9.7")
+ 'org-preview-latex-image-directory
+ "Use `org-latex-preview-cache' instead."
+ "10.0")
 
 ;; FIXME: Unused; obsoleted; to be removed.
 (defvar org-latex-default-packages-alist)

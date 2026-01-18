@@ -723,6 +723,14 @@ constructed again.
 
 ** Removed or renamed functions and variables
 
+*** Obsolete variable ~org-latex-preview-ltxpng-directory~ has been removed
+
+Use ~org-latex-preview-image-directory~ instead.
+
+*** Obsolete function ~org-remove-latex-fragment-image-overlays~ has been removed
+
+Use ~org-latex-preview-clear-overlays~ instead.
+
 *** ~org-edit-src-content-indentation~ is renamed to ~org-src-content-indentation~
 
 The new name highlights that the customization affects more than
@@ -742,12 +750,16 @@ These replacements work similarly, only the names are changed.
 | ~org-normalize-color~                 | ~org-latex-preview--normalize-color~ |
 | ~org-format-latex-mathml-available-p~ | ~org-mathml-converter-available-p~   |
 | ~org-create-math-formula~             | ~org-mathml-convert-latex~           |
-| ~org-preview-latex-image-directory~   | ~org-latex-preview-cache~            |
 | ~org-preview-latex-default-process~   | ~org-latex-preview-process-default~  |
 | ~org-format-latex-header~             | ~org-latex-preview-preamble~         |
 | ~org-latex-to-mathml-jar-file~        | ~org-mathml-converter-jar-file~      |
 | ~org-latex-to-mathml-convert-command~ | ~org-mathml-convert-command~         |
 | ~org-latex-mathml-directory~          | ~org-mathml-export-directory~        |
+
+~org-preview-latex-image-directory~ is marked obsolete, use
+~org-latex-preview-cache~ instead.  By default, LaTeX preview images
+are now stored in the =org-persist= cache, but like before, this
+location is customizable.
 
 ~org-format-latex-options~ is marked obsolete, use
 ~org-latex-preview-appearance-options~ instead.  The replacement acts
