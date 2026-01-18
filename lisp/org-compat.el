@@ -843,7 +843,7 @@ Support for the following key is obsolete, use
 (define-obsolete-function-alias
   'org-format-latex-mathml-available-p 'org-mathml-converter-available-p "9.7")
 (define-obsolete-function-alias
-  'org-create-math-formula 'org-mathml-convert-latex "9.7")
+  'org-create-math-formula 'org-mathml-convert-latex "10.0")
 (define-obsolete-function-alias
   'org-latex-mathml-directory 'org-mathml-export-directory "9.8")
 

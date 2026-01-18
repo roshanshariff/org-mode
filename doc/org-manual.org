@@ -15695,9 +15695,11 @@ document in one of the following ways:
 
   #+vindex: org-latex-to-mathml-convert-command
   #+vindex: org-latex-to-mathml-jar-file
+  #+vindex: org-mathml-convert-command
+  #+vindex: org-mathml-converter-jar-file
   You can specify the LaTeX-to-MathML converter by customizing the
-  variables ~org-latex-to-mathml-convert-command~ and
-  ~org-latex-to-mathml-jar-file~.
+  variables ~org-mathml-convert-command~ and
+  ~org-mathml-converter-jar-file~.
 
   If you prefer to use MathToWeb[fn:: See
   [[https://mathtoweb.sourceforge.io/][MathToWeb]].]
@@ -15705,9 +15707,9 @@ document in one of the following ways:
   below.
 
   #+begin_src emacs-lisp
-  (setq org-latex-to-mathml-convert-command
+  (setq org-mathml-convert-command
         "java -jar %j -unicode -force -df %o %I"
-        org-latex-to-mathml-jar-file
+        org-mathml-converter-jar-file
         "/path/to/mathtoweb.jar")
   #+end_src
 
@@ -15716,7 +15718,7 @@ document in one of the following ways:
   instead,
 
   #+begin_src emacs-lisp
-  (setq org-latex-to-mathml-convert-command
+  (setq org-mathml-convert-command
         "latexmlmath %i --presentationmathml=%o")
   #+end_src
 

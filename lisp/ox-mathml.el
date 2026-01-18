@@ -41,7 +41,7 @@ your mathtoweb.jar file."
 Replace format-specifiers in the command as noted below and use
 `shell-command' to convert LaTeX to MathML.
 %j:     Executable file in fully expanded form as specified by
-        `org-latex-to-mathml-jar-file'.
+        `org-mathml-converter-jar-file'.
 %I:     Input LaTeX file in fully expanded form.
 %i:     Shell-escaped LaTeX fragment to be converted.
         It must not be used inside a quoted argument, the result of %i
@@ -85,7 +85,7 @@ in the same place."
 
 (defun org-mathml-convert-latex (latex-frag &optional mathml-file)
   "Convert LATEX-FRAG to MathML and store it in MATHML-FILE.
-Use `org-latex-to-mathml-convert-command'.  If the conversion is
+Use `org-mathml-convert-command'.  If the conversion is
 successful, return the portion between \"<math...> </math>\"
 elements otherwise return nil.  When MATHML-FILE is specified,
 write the results in to that file.  When invoked as an

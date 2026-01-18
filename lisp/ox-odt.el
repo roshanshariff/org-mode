@@ -136,7 +136,7 @@
 (declare-function hfy-face-to-style "htmlfontify" (fn))
 (declare-function hfy-face-or-def-to-name "htmlfontify" (fn))
 (declare-function archive-zip-extract "arc-mode" (archive name))
-(declare-function org-create-math-formula "org" (latex-frag &optional mathml-file))
+(declare-function org-mathml-convert-latex "ox-mathml" (latex-frag &optional mathml-file))
 (declare-function browse-url-file-url "browse-url" (file))
 
 (defvar nxml-auto-insert-xml-declaration-flag) ; nxml-mode.el
@@ -726,7 +726,7 @@ e.g. \"tex:dvipng\".  Allowed values are:
 
 nil            Ignore math snippets.
 t, `mathml'    Convert the LaTeX fragments to MathML if the
-               `org-latex-to-mathml-convert-command' is usable.
+               `org-mathml-convert-command' is usable.
 SYMBOL         Convert the LaTeX fragments to images using any symbol
                defined in `org-preview-latex-process-alist', e.g.,
                `dvipng'.
@@ -2028,17 +2028,6 @@ information."
 
 
 ;;;; LaTeX Environment
-
-;; (eval-after-load 'ox-odt '(ad-deactivate 'org-format-latex-as-mathml))
-;; (advice-add 'org-format-latex-as-mathml	; FIXME
-;;   :around #'org--odt-protect-latex-fragment)
-;; (defun org--odt-protect-latex-fragment (orig-fun latex-frag &rest args)
-;;   "Encode LaTeX fragment as XML.
-;; Do this when translation to MathML fails."
-;;   (let ((retval (apply orig-fun latex-frag args)))
-;;     (if (> (length retval) 0)
-;;         retval
-;;       (org-odt--encode-plain-text latex-frag))))
 
 (defun org-odt-latex-environment (latex-environment _contents info)
   "Transcode a LATEX-ENVIRONMENT element from Org to ODT.
@@ -4241,7 +4230,7 @@ INFO is the communication channel."
 ;;;###autoload
 (defun org-odt-export-as-odf (latex-frag &optional odf-file)
   "Export LATEX-FRAG as OpenDocument formula file ODF-FILE.
-Use `org-create-math-formula' to convert LATEX-FRAG first to
+Use `org-mathml-convert-latex' to convert LATEX-FRAG first to
 MathML.  When invoked as an interactive command, use
 `org-latex-regexps' to infer LATEX-FRAG from currently active
 region.  If no LaTeX fragments are found, prompt for it.  Push
