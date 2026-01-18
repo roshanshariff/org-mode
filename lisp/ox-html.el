@@ -103,7 +103,8 @@
     (underline . org-html-underline)
     (verbatim . org-html-verbatim)
     (verse-block . org-html-verse-block))
-  :filters-alist '((:filter-options . org-html-infojs-install-script)
+  :filters-alist '((:filter-options org-html-infojs-install-script
+                                    org-html-latex-override-image-options)
 		   (:filter-parse-tree org-html-image-link-filter
                                        org-html-prepare-latex-images)
 		   (:filter-final-output . org-html-final-function))
@@ -3121,6 +3122,38 @@ CONTENTS is nil.  INFO is a plist holding contextual information."
 	 ((string= "tables" value) (org-html-list-of-tables info))))))))
 
 ;;;; LaTeX Environment
+
+;; FIXME Remove after deleting the obsolete variable
+;; `org-format-latex-options' and `org-preview-latex-image-directory'.
+(defun org-html-latex-override-image-options (info _backend)
+  "Install backward-compatible LaTeX preview image settings.
+
+This filter inserts settings from `org-format-latex-options' and
+`org-preview-latex-image-directory' into the HTML export process as
+required.
+
+INFO is modified in place and returned."
+  (prog1 info
+    ;; Check `org-format-latex-options' for backward compatibility
+    (dolist (keypair '((:html-foreground . :foreground)
+                       (:html-background . :background)
+                       (:html-scale      . :scale)))
+      (when-let* ((override
+                   (plist-get org-latex-preview-appearance-options (car keypair))))
+        (setf (plist-get (plist-get info :html-latex-image-options) (cdr keypair))
+              override)))
+    ;; Check `org-preview-latex-image-directory' for backward
+    ;; compatibility
+    (with-no-warnings
+      (unless (equal org-preview-latex-image-directory
+                     (eval (car (get 'org-preview-latex-image-directory
+                                     'standard-value))))
+        (org-display-warning
+         "Reading LaTeX fragment image export path from obsolete option `org-preview-latex-image-directory' instead of `org-html-latex-image-options'.
+To avoid this, undo any customization of `org-preview-latex-image-directory'.")
+        (setf (plist-get (plist-get info :html-latex-image-options)
+                         :image-dir)
+              org-preview-latex-image-directory)))))
 
 (defun org-html-prepare-latex-images (parse-tree _backend info)
   "Make sure that appropriate preview images exist for all LaTeX.

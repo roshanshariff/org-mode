@@ -728,7 +728,7 @@ nil            Ignore math snippets.
 t, `mathml'    Convert the LaTeX fragments to MathML if the
                `org-mathml-convert-command' is usable.
 SYMBOL         Convert the LaTeX fragments to images using any symbol
-               defined in `org-preview-latex-process-alist', e.g.,
+               defined in `org-latex-preview-process-alist', e.g.,
                `dvipng'.
 `verbatim'     Keep everything in verbatim.
 
@@ -742,10 +742,10 @@ provided, process as `verbatim'."
                   (const t)
                   (const mathml))
           (restricted-sexp :tag "Convert fragments to images"
-                           :value ,(caar org-preview-latex-process-alist)
+                           :value ,(caar org-latex-preview-process-alist)
                            :match-alternatives
                            (,(lambda (v)
-                               (assq v org-preview-latex-process-alist))))
+                               (assq v org-latex-preview-process-alist))))
           (const :tag "Leave math verbatim" verbatim)))
 
 (defcustom org-odt-latex-image-options

@@ -778,29 +778,27 @@ This constant, for example, makes the below code not err:
   'org-latex-preview-live-debounce 'org-latex-preview-mode-update-delay "9.8")
 
 (define-obsolete-variable-alias
-  'org-format-latex-options 'org-latex-preview-appearance-options "9.7"
+  'org-format-latex-options 'org-latex-preview-appearance-options
+  "10.0"
   "Options for creating images from LaTeX fragments.
 This is a property list with the following properties:
-:foreground  The foreground color for images embedded in Emacs, e.g. \"Black\".
+:foreground  the foreground color for images embedded in Emacs, e.g. \"Black\".
              `default' means use the foreground of the default face.
              `auto' means use the foreground from the text face.
-:background  The background color, or \"Transparent\".
+:background  the background color, or \"Transparent\".
              `default' means use the background of the default face.
              `auto' means use the background from the text face.
-:scale       A scaling factor for the size of the images, to get more pixels
-:zoom        when the image has associated font-relative height information,
-             the display size is scaled by this factor.
-:page-width  The width of the LaTeX document fragments are compiled in.
-             Either:
-             - A string giving a LaTeX dimension (e.g. \"12cm\").
-             - A floating point value between 0.0 and 1.0,
-               this sets the text width to this ratio of the page width.
-             - nil, in which case the default text width is unmodified.
+:scale       a scaling factor for the size of the images, to get more pixels
+
+Support for the following keys is obsolete, use
+`org-html-latex-image-options' instead:
+
+:html-foreground, :html-background, :html-scale
+the same numbers for HTML export.
 
 Support for the following key is obsolete, use
-`org-highlight-latex-matchers' instead.
-
-:matchers    A list indicating which matchers should be used to
+`org-highlight-latex-matchers' instead:
+:matchers    a list indicating which matchers should be used to
              find LaTeX fragments.  Valid members of this list are:
              \"begin\" find environments
              \"$1\"    find single characters surrounded by $.$
@@ -808,6 +806,7 @@ Support for the following key is obsolete, use
              \"$$\"    find math expressions surrounded by $$....$$
              \"\\(\"    find math expressions surrounded by \\(...\\)
              \"\\=\\[\"    find math expressions surrounded by \\=\\[...\\]")
+
 (make-obsolete-variable
  'org-format-latex-signal-error "no longer used" "9.7")
 
@@ -844,7 +843,7 @@ header, or they will be appended."
 `org-latex-preview-preamble' instead.
 
 To generate images from LaTeX fragments programmatically use
-`org-latex-preview-create-images' instead of
+`org-latex-preview-create-images' instead of `org-format-latex' or
 `org-create-formula-image'."
  "10.0")
 
@@ -852,8 +851,112 @@ To generate images from LaTeX fragments programmatically use
   'org-format-latex-header 'org-latex-preview-preamble "9.7")
 (define-obsolete-variable-alias
   'org-preview-latex-default-process 'org-latex-preview-process-default "9.7")
-(define-obsolete-variable-alias
-  'org-preview-latex-process-alist 'org-latex-preview-process-alist "9.7")
+
+(defcustom org-preview-latex-process-alist
+  '((dvipng
+     :programs ("latex" "dvipng")
+     :description "dvi > png"
+     :message "you need to install the programs: latex and dvipng."
+     :image-input-type "dvi"
+     :image-output-type "png"
+     :image-size-adjust (1.0 . 1.0)
+     :latex-compiler ("latex -interaction nonstopmode -output-directory %o %f")
+     :image-converter ("dvipng -D %D -T tight -o %O %f")
+     :transparent-image-converter
+     ("dvipng -D %D -T tight -bg Transparent -o %O %f"))
+    (dvisvgm
+     :programs ("latex" "dvisvgm")
+     :description "dvi > svg"
+     :message "you need to install the programs: latex and dvisvgm."
+     :image-input-type "dvi"
+     :image-output-type "svg"
+     :image-size-adjust (1.7 . 1.5)
+     :latex-compiler ("latex -interaction nonstopmode -output-directory %o %f")
+     :image-converter ("dvisvgm %f --no-fonts --exact-bbox --scale=%S --output=%O"))
+    (xelatex
+     :programs ("xelatex" "dvisvgm")
+     :description "xdv > svg"
+     :message "you need to install the programs: xelatex and dvisvgm."
+     :image-input-type "xdv"
+     :image-output-type "svg"
+     :image-size-adjust (1.7 . 1.5)
+     :latex-compiler ("xelatex -no-pdf -interaction nonstopmode -output-directory %o %f")
+     :image-converter ("dvisvgm %f --no-fonts --exact-bbox --scale=%S --output=%O"))
+    (imagemagick
+     :programs ("latex" "convert")
+     :description "pdf > png"
+     :message "you need to install the programs: latex and imagemagick."
+     :image-input-type "pdf"
+     :image-output-type "png"
+     :image-size-adjust (1.0 . 1.0)
+     :latex-compiler ("pdflatex -interaction nonstopmode -output-directory %o %f")
+     :image-converter
+     ("convert -density %D -trim -antialias %f -quality 100 %O")))
+  "Definitions of external processes for LaTeX previewing.
+Org mode can use some external commands to generate TeX snippet's images for
+previewing or inserting into HTML files, e.g., \"dvipng\".  This variable tells
+`org-create-formula-image' how to call them.
+
+The value is an alist with the pattern (NAME . PROPERTIES).  NAME is a symbol.
+PROPERTIES accepts the following attributes:
+
+  :programs           list of strings, required programs.
+  :description        string, describe the process.
+  :message            string, message it when required programs cannot be found.
+  :image-input-type   string, input file type of image converter (e.g., \"dvi\").
+  :image-output-type  string, output file type of image converter (e.g., \"png\").
+  :image-size-adjust  cons of numbers, the car element is used to adjust LaTeX
+                      image size showed in buffer and the cdr element is for
+                      HTML file.  This option is only useful for process
+                      developers, users should use variable
+                      `org-format-latex-options' instead.
+  :post-clean         list of strings, files matched are to be cleaned up once
+                      the image is generated.  When nil, the files with \".dvi\",
+                      \".xdv\", \".pdf\", \".tex\", \".aux\", \".log\", \".svg\",
+                      \".png\", \".jpg\", \".jpeg\" or \".out\" extension will
+                      be cleaned up.
+  :latex-header       list of strings, the LaTeX header of the snippet file.
+                      When nil, the fallback value is used instead, which is
+                      controlled by `org-format-latex-header',
+                      `org-latex-default-packages-alist' and
+                      `org-latex-packages-alist', which see.
+  :latex-compiler list of LaTeX commands, as strings or a function.
+                      Each of them is given to the shell.
+                      Place-holders \"%t\", \"%b\" and \"%o\" are
+                      replaced with values defined below.
+                      When a function, that function should accept the
+                      file name as its single argument.
+  :image-converter list of image converter commands strings or a
+                      function.  Each of them is given to the shell
+                      and supports any of the following place-holders
+                      defined below.
+                      When a function, that function should accept the
+                      file name as its single argument.
+
+If set, :transparent-image-converter is used instead of :image-converter to
+convert an image when the background color is nil or \"Transparent\".
+
+Place-holders used by `:image-converter' and `:latex-compiler':
+
+  %f    input file name
+  %b    base name of input file
+  %o    base directory of input file
+  %O    absolute output file name
+
+Place-holders only used by `:image-converter':
+
+  %D    dpi, which is used to adjust image size by some processing commands.
+  %S    the image size scale ratio, which is used to adjust image size by some
+        processing commands."
+  :group 'org-latex
+  :package-version '(Org . "9.8")
+  :type '(alist :tag "LaTeX to image backends"
+		:value-type (plist)))
+
+(make-obsolete-variable
+ 'org-preview-latex-process-alist 'org-latex-preview-process-alist
+ "10.0")
+
 (define-obsolete-function-alias
   'org-clear-latex-preview 'org-latex-preview-clear-overlays "9.7")
 (make-obsolete
@@ -945,6 +1048,10 @@ images at the same place."
 ;; FIXME: Unused; obsoleted; to be removed.
 (defvar org-latex-default-packages-alist)
 (defvar org-latex-packages-alist)
+(defvar org-html-latex-image-options)
+(declare-function org-format-latex-as-html "ox-html")
+(declare-function org-mathml-converter-available-p "ox-mathml")
+
 (defun org-format-latex
     (prefix &optional beg end dir overlays msg forbuffer processing-type)
   "Replace LaTeX fragments with links to an image.
@@ -1039,9 +1146,24 @@ Some of the options can be changed using the variable
 			 (movefile (format "%s_%s.%s" absprefix hash imagetype))
 			 (sep (and block-type "\n\n"))
 			 (link (concat sep "[[file:" linkfile "]]" sep))
-			 (options
+			 (html-options
+                          (and (not forbuffer)
+                               (require 'ox-html)
+                               `(,@(and-let* ((foreground
+                                               (plist-get org-html-latex-image-options
+                                                          :foreground)))
+                                     (list :html-foreground foreground))
+                                 ,@(and-let* ((background
+                                               (plist-get org-html-latex-image-options
+                                                          :background)))
+                                     (list :html-background background))
+                                 ,@(and-let* ((scale (plist-get org-html-latex-image-options
+                                                                :scale)))
+                                     (list :html-scale scale)))))
+                         (options
 			  (org-combine-plists
-			   org-format-latex-options
+			   html-options
+                           org-format-latex-options
 			   `(:foreground ,fg :background ,bg))))
 		    (when msg (message msg cnt))
 		    (unless checkdir-flag ; Ensure the directory exists.
@@ -1054,8 +1176,9 @@ Some of the options can be changed using the variable
 		       value movefile options forbuffer processing-type))
                     (org-place-formula-image link block-type beg end value overlays movefile imagetype)))
 		 ((eq processing-type 'mathml)
-		  ;; Process to MathML.
-		  (unless (org-format-latex-mathml-available-p)
+		  (require 'ox-mathml)
+                  ;; Process to MathML.
+		  (unless (org-mathml-converter-available-p)
 		    (user-error "LaTeX to MathML converter not configured"))
 		  (cl-incf cnt)
 		  (when msg (message msg cnt))
@@ -1104,6 +1227,13 @@ The overlay will be above BEG if OVERLAYS is non-nil."
 (defvar org-latex-preview-compiler-command-map)
 (defvar org-latex-precompile)
 (defvar org-latex-compiler)
+(declare-function org-latex-preview--get-display-dpi "org-latex-preview")
+(declare-function org-latex-preview--attr-color "org-latex-preview")
+(declare-function org-latex-preview--format-color "org-latex-preview")
+(declare-function org-latex-make-preamble "ox-latex")
+(declare-function org-export-get-environment "ox")
+(declare-function org-export-get-backend "ox")
+(declare-function org-export-with-buffer-copy "ox")
 
 ;; FIXME: Unused; obsoleted; to be removed.
 (defun org-create-formula-image
@@ -1123,6 +1253,8 @@ background color of the generated image.
 When BUFFER non-nil, this function is used for LaTeX previewing.
 Otherwise, it is used to deal with LaTeX snippets showed in
 a HTML file."
+  (require 'org-latex-preview)
+  (require 'ox-latex)
   (let* ((processing-type (or processing-type
 			      org-preview-latex-default-process))
 	 (processing-info
@@ -1152,7 +1284,9 @@ a HTML file."
 				'(1.0 . 1.0)))
 	 (scale (* (if buffer (car image-size-adjust) (cdr image-size-adjust))
 		   (or (plist-get options (if buffer :scale :html-scale)) 1.0)))
-	 (dpi (* scale (if (and buffer (display-graphic-p)) (org--get-display-dpi) 140.0)))
+	 (dpi (* scale (if (and buffer (display-graphic-p))
+                           (org-latex-preview--get-display-dpi)
+                         140.0)))
 	 (fg (or (plist-get options (if buffer :foreground :html-foreground))
 		 "Black"))
 	 (bg (or (plist-get options (if buffer :background :html-background))
@@ -1168,12 +1302,12 @@ a HTML file."
     (dolist (program programs)
       (org-check-external-command program error-message))
     (if (memq fg '(default auto))
-	(setq fg (org-latex-color :foreground))
-      (setq fg (org-latex-color-format fg)))
+	(setq fg (org-latex-preview--attr-color :foreground))
+      (setq fg (org-latex-preview--format-color fg)))
     (setq bg (cond
-	      ((memq bg '(default auto)) (org-latex-color :background))
+	      ((memq bg '(default auto)) (org-latex-preview--attr-color :background))
 	      ((string= bg "Transparent") nil)
-	      (t (org-latex-color-format bg))))
+	      (t (org-latex-preview--format-color bg))))
     ;; Remove TeX \par at end of snippet to avoid trailing space.
     (if (string-suffix-p string "\n")
         (aset string (1- (length string)) ?%)
