@@ -2287,11 +2287,6 @@ appropriate warnings may be emitted."
           '(org latex-preview preamble-precompilation)
           "The LaTeX package \"mylatexformat\" is required for precompilation, but could not be found")
          :warning)
-       (unless (= 0 (call-process "kpsewhich" nil nil nil "preview.sty"))
-         (display-warning
-          '(org latex-preview preamble-precompilation)
-          "The LaTeX package \"preview\" is required for precompilation, but could not be found")
-         :warning)
        (display-warning
         '(org latex-preview preamble-precompilation)
         (format "Failed to precompile preamble (%s), see the \"%s\" buffer."

@@ -2433,12 +2433,16 @@ The path of the created LaTeX file is returned."
                                                               (not relative-file-p))))
              (setq header (concat "%& " (file-name-sans-extension format-file)))
            (setq precompile-failed-msg
-                 (concat 
+                 (concat
                   (format "Precompile failed for buffer %s."
                           (plist-get processing-info :org-buffer))
                   (when-let ((filename (buffer-file-name
                                         (plist-get processing-info :org-buffer))))
-                    (format " (File %s)" filename))))))
+                    (format " (File %s)" filename))
+                  (condition-case nil
+                      (unless (= 0 (call-process "kpsewhich" nil nil nil "preview.sty"))
+                        "\nThe LaTeX package \"preview\" is required for precompilation, but could not be found")
+                    (file-missing "\nPlease ensure that the LaTeX package \"preview\" is installed"))))))
         ((or "xelatex" "lualatex")
          (setq precompile-failed-msg
                (concat
