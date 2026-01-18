@@ -168,6 +168,7 @@ Place-holders used by `:image-converter' and `:latex-compiler':
 
   %f    input file name
   %b    base name of input file
+  %B    absolute base name of input file
   %o    base directory of input file
   %O    absolute output file name
 
