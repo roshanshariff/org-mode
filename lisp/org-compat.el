@@ -562,8 +562,6 @@ Counting starts at 1."
   'org-export-before-parsing-functions "Org 9.6")
 (define-obsolete-function-alias 'org-element-remove-indentation
   'org-remove-indentation "9.0")
-(define-obsolete-variable-alias 'org-latex-create-formula-image-program
-  'org-preview-latex-default-process "9.0")
 (define-obsolete-variable-alias 'org-latex-listings
   'org-latex-src-block-backend "9.6")
 (define-obsolete-function-alias 'org-table-p 'org-at-table-p "9.0")

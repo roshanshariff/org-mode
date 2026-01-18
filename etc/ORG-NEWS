@@ -731,6 +731,10 @@ Use ~org-latex-preview-image-directory~ instead.
 
 Use ~org-latex-preview-clear-overlays~ instead.
 
+*** Obsolete variable ~org-latex-create-formula-image-program~ has been removed
+
+Use ~org-latex-preview-default-process~ instead.
+
 *** ~org-edit-src-content-indentation~ is renamed to ~org-src-content-indentation~
 
 The new name highlights that the customization affects more than
@@ -747,11 +751,9 @@ These replacements work similarly, only the names are changed.
 | ~org-clear-latex-preview~             | ~org-latex-preview-clear-overlays~   |
 | ~org-latex-color-format~              | ~org-latex-preview--format-color~    |
 | ~org-latex-color~                     | ~org-latex-preview--attr-color~      |
-| ~org-normalize-color~                 | ~org-latex-preview--normalize-color~ |
 | ~org-format-latex-mathml-available-p~ | ~org-mathml-converter-available-p~   |
 | ~org-create-math-formula~             | ~org-mathml-convert-latex~           |
 | ~org-preview-latex-default-process~   | ~org-latex-preview-process-default~  |
-| ~org-format-latex-header~             | ~org-latex-preview-preamble~         |
 | ~org-latex-to-mathml-jar-file~        | ~org-mathml-converter-jar-file~      |
 | ~org-latex-to-mathml-convert-command~ | ~org-mathml-convert-command~         |
 | ~org-latex-mathml-directory~          | ~org-mathml-export-directory~        |
@@ -760,6 +762,11 @@ These replacements work similarly, only the names are changed.
 ~org-latex-preview-cache~ instead.  By default, LaTeX preview images
 are now stored in the =org-persist= cache, but like before, this
 location is customizable.
+
+~org-format-latex-header~ is marked obsolete, use
+~org-latex-preview-preamble~ instead.  The replacement has a similar
+function, but the default value is different for use with the new
+LaTeX preview system.
 
 ~org-format-latex-options~ is marked obsolete, use
 ~org-latex-preview-appearance-options~ instead.  The replacement acts
@@ -785,6 +792,10 @@ single command or a list containing a single command.  The placeholder
 
 ~org-place-formula-image~ is marked obsolete.  This functionality is
 replaced with ~org-latex-preview-place~.
+
+~org-dvipng-color-format~, ~org-latex-color-format~ and
+~org-normalize-color~ are marked obsolete.  Their functionality is
+combined into ~org-latex-preview--format-color~.
 
 *** Deprecated ~org-place-formula-image~ function
 *** ~org-cycle-display-inline-images~ is renamed to ~org-cycle-display-link-previews~
