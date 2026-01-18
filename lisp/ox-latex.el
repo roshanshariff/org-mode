@@ -2213,6 +2213,11 @@ This is intended to speed up Org's LaTeX preview and export process."
                        (alist-get ?l spec)
                        (if tempfile-p "-temp" default-directory))))
         (default-directory
+         ;; We want the precompilation process to run in the main
+         ;; file's directory if there are includes, and in
+         ;; temporary-file-directory otherwise.  Note that in either
+         ;; case, the format file itself is created/placed in
+         ;; temporary-file-directory.
          (if tempfile-p temporary-file-directory default-directory)))
     (or (cadr
          (org-persist-read "LaTeX format file cache"
