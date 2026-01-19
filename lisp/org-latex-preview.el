@@ -142,7 +142,7 @@ PROPERTIES accepts the following attributes:
                       be cleaned up.
   :latex-header       list of strings, the LaTeX header of the snippet file.
                       When nil, the fallback value is used instead, which is
-                      controlled by `org-latex-preview-preamble',
+                      controlled by option `org-latex-preview-preamble',
                       `org-latex-default-packages-alist' and
                       `org-latex-packages-alist', which see.
   :latex-compiler list of LaTeX commands, as strings or a function.
@@ -458,6 +458,21 @@ the image.")
 ;; `org-latex-preview-mode--detect-fragments-in-change', which is added to
 ;; `after-change-functions'.  It does this by placing dummy overlays
 ;; that don't display images, but are marked as having been modified.
+;;
+;; LaTeX preview overlay property summary:
+;;
+;; org-view-text: non-nil if the overlay text (LaTeX fragment text) is
+;; visible, nil otherwise.
+;;
+;; org-preview-state: modified or nil.  modified when the text of the
+;; overlay has been modified.
+;;
+;; org-preview-image: Temporary store for the overlay preview image
+;; spec when displaying the overlay text.
+;;
+;; org-hidden-face: Temporary store for the overlay's face when
+;; displaying the overlay text.  This is relevant for SVG preview
+;; images, which inherit their face from the overlay face property.
 
 (defun org-latex-preview--ensure-overlay (beg end)
   "Build an overlay between BEG and END."
@@ -795,7 +810,7 @@ image.  The preview image is regenerated if necessary."
           ;; It may seem odd to use an timer for this action, but by
           ;; introducing a brief window for Emacs to deal with input
           ;; events triggered during prior processing the perceptible
-          ;; delay is reduced.  Setting an 0.05s timer isn't
+          ;; delay is reduced.  Setting an 0.01s timer isn't
           ;; necesarily the optimal duration, but from a little
           ;; testing it appears to be fairly reasonable.
           (run-at-time 0.01 nil #'org-latex-preview-mode--regenerate-overlay ov)
@@ -878,7 +893,7 @@ by `org-cycle', and close any open preview overlays."
 (define-minor-mode org-latex-preview-mode
   "Minor mode to automatically preview LaTeX fragments.
 
-When LaTeX preview auto mode is on, LaTeX fragments in Org
+When LaTeX preview mode is on, LaTeX fragments in Org
 buffers are automatically previewed after being inserted, and
 hidden when the cursor moves into them.  This allows one to
 seamlessly edit and preview LaTeX in Org buffers.
@@ -945,9 +960,17 @@ customize the variable `org-latex-preview-mode-display-live'."
 (defvar-local org-latex-preview-live--docstring " "
   "String that holds the live LaTeX preview image as a text property.")
 
-(defvar-local org-latex-preview-live--element-type nil)
+(defvar-local org-latex-preview-live--element-type nil
+  "The type of the element being previewed live.
 
-(defvar-local org-latex-preview-live--generator nil)
+It is set to either latex-fragment or latex-environment.")
+
+(defvar-local org-latex-preview-live--generator nil
+  "Function to regenerate live previews.
+
+This buffer-local variable holds a closure with captured state for
+debouncing and throttling the regeneration of live previews as LaTeX
+fragments are modified.")
 
 (defcustom org-latex-preview-mode-display-live '(block edit-special)
   "Whether LaTeX previews should be generated during writing.
@@ -960,8 +983,9 @@ shown.
 The availible contexts are:
 - inline, for inline LaTeX fragments
 - block, for LaTeX environments
-- edit-special, for org-edit-special buffers"
+- edit-special, for `org-edit-special' buffers"
   :group 'org-latex-preview
+  :package-version '(Org . "10.0")
   :type '(choice
           (const :tag "Everywhere" t)
           (const :tag "Never" nil)
@@ -1013,11 +1037,15 @@ preview time.")
 
 (defvar-local org-latex-preview-live--preview-times
     (make-vector 3 1.0)
-  "Vector containing the last three preview run times in this buffer")
-(defvar-local org-latex-preview-live--preview-times-index 0)
+  "Vector containing the last three preview run times in this buffer.")
+
+(defvar-local org-latex-preview-live--preview-times-index 0
+  "Index for computing moving average of preview processing times.
+
+This is used to set the throttle duration of live preview regeneration.")
 
 (defvar-local org-latex-preview-live--last-hash nil
-  "Last hashed fragment when live-previewing")
+  "Last hashed fragment when live-previewing.")
 
 (defvar org-latex-preview-live--cache-count 0
   "Running count of the number of live previews cached.")
@@ -1050,17 +1078,6 @@ Called with EXIT-CODE and EXTENDED-INFO from the async process."
       ;; Update run times to dynamically set throttle
       (org-latex-preview-live--update-times
        (- (float-time) (plist-get extended-info :start-time))))))
-
-(defconst org-latex-preview-mode-display-type 'buffer
-  "How to display live-updating previews of LaTeX snippets.
-
-This option is meaningful when live previews are enabled, by
-setting `org-latex-preview-mode-generate' to `live' and enabling
-`org-latex-preview-mode'.
-
-The only currently supported option is the symbol buffer, to
- display live previews next to or under the LaTeX fragment in the
- Org buffer.")
 
 (defun org-latex-preview-live--debounce (func duration)
   "Return a debounced FUNC with DURATION applied."
@@ -1913,10 +1930,10 @@ If PARSE-TREE is provided, it will be used insead of
                 &allow-other-keys)
   "Create preview images for LaTeX fragments in PARSE-TREE synchronously.
 
-Returns a hash table. Each key is a LaTeX fragment or
+Returns a hash table.  Each key is a LaTeX fragment or
 environment in PARSE-TREE, and correspdonding value is a list
 containing image information.  This list has the format
-(path . image-info).
+ (path . image-info).
 
  For example:
   (\"/path/.../to/image.svg\"
@@ -2404,6 +2421,9 @@ and used.  Otherwise the preamble is used normally.
 Within the body of the created LaTeX file, each of
 FRAGMENTS will be placed in order, wrapped within a
 \"preview\" environment.
+
+APPEARANCE-OPTIONS is used to set the page width, see
+`org-latex-preview-appearance-options'.
 
 The path of the created LaTeX file is returned."
   (let* ((header
@@ -3326,7 +3346,7 @@ the horizontal and vertical directions."
     (error "Attempt to calculate the dpi of a non-graphic display")))
 
 (defun org-latex-preview--attr-color (attr)
-  "Return a RGB color for the LaTeX color package."
+  "Return a RGB color for the LaTeX color package based on ATTR."
   (org-latex-preview--format-color (face-attribute 'default attr nil)))
 
 (defvar org-latex-preview--format-color-cache
