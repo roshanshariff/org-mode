@@ -428,7 +428,7 @@ the image.")
           (overlay-put ov 'face nil)
           (overlay-put ov 'help-echo nil)     ;tooltip error display
           (overlay-put ov 'before-string nil) ;error fringe marker
-          ;; (overlay-put ov 'hidden-face nil)   ;(re)store svg face
+          ;; (overlay-put ov 'org-hidden-face nil)   ;(re)store svg face
           ;; We do not set the display property of preview image
           ;; overlays to nil when ensuring that an overlay exists.
           ;; This causes flicker during regeneration as the the
@@ -436,12 +436,11 @@ the image.")
           ;; image.
           ;;
           ;; We also do not reset the image spec stored in the
-          ;; `preview-image' property, or the state of the preview
-          ;; stored in the `view-text' property, as persisting the
+          ;; `org-preview-image' property, or the state of the preview
+          ;; stored in the `org-view-text' property, as persisting the
           ;; state of an already existing overlay is required for live
           ;; previews.
-          (overlay-put ov 'preview-state nil) ;is fragment modified?
-          )))
+          (overlay-put ov 'org-preview-state nil)))) ;is fragment modified?
     (unless ov
       (setq ov (make-overlay beg end nil 'front-advance))
       (overlay-put ov 'org-overlay-type 'org-latex-overlay)
@@ -477,8 +476,8 @@ overlay face is set to `org-latex-preview-processing-face'."
 (defun org-latex-preview-mode--mark-overlay-modified (ov after-p _beg _end &optional _l)
   "When AFTER-P mark OV as modified and display nothing."
   (when after-p
-    (unless (eq (overlay-get ov 'preview-state) 'modified)
-      (overlay-put ov 'preview-state 'modified)
+    (unless (eq (overlay-get ov 'org-preview-state) 'modified)
+      (overlay-put ov 'org-preview-state 'modified)
       (overlay-put ov 'face nil)
       (overlay-put ov 'display nil))))
 
@@ -511,11 +510,11 @@ overlay face is set to `org-latex-preview-processing-face'."
                                  (round (* 100 (- 1 (/ (max 0.0 (- depth 0.02))
                                                        height))))
                                'center)))))
-    (overlay-put ov 'preview-image image-display)
+    (overlay-put ov 'org-preview-image image-display)
     (cond
      ((eq image-type 'svg)
       (overlay-put
-       ov 'hidden-face
+       ov 'org-hidden-face
        (or (and errors 'error)
            (org-latex-preview--face-around
             (overlay-start ov) (overlay-end ov)))))
@@ -535,9 +534,9 @@ overlay face is set to `org-latex-preview-processing-face'."
            errors
          (concat (propertize "! " 'face '(bold error))
                  (substring (replace-regexp-in-string "[\n\r\t ]+" " " errors) 2)))))
-    (unless (overlay-get ov 'view-text) ;Live previewing this element, update in background
+    (unless (overlay-get ov 'org-view-text) ;Live previewing this element, update in background
       (when image-display (overlay-put ov 'display image-display))
-      (overlay-put ov 'face (overlay-get ov 'hidden-face)))
+      (overlay-put ov 'face (overlay-get ov 'org-hidden-face)))
     (run-hook-with-args 'org-latex-preview-overlay-update-functions ov)))
 
 (defun org-latex-preview--face-around (start end)
@@ -567,35 +566,38 @@ Faces in `org-latex-preview--ignored-faces' are ignored."
 ;; The boundaries of latex preview image overlays are automatically
 ;; extended to track changes in the underlying text by the functions
 ;; `org-latex-preview-mode--insert-front-handler' and
-;; `org-latex-preview-mode--insert-behind-handler'.  These are placed in
-;; the `insert-in-front-hooks' and `insert-behind-hooks' properties of
-;; the iamge overlays. See (info "(elisp) Overlay Properties").
+;; `org-latex-preview-mode--insert-behind-handler'.  These are placed
+;; in the `insert-in-front-hooks' and `insert-behind-hooks' properties
+;; of the image overlays. See (info "(elisp) Overlay Properties").
+;;
 ;; Additionally, when an overlay's text is modified,
-;; `org-latex-preview-mode--mark-overlay-modified', placed in the overlay's
-;; modification hook, notes this in the overlay's `preview-state'
-;; property.
+;; `org-latex-preview-mode--mark-overlay-modified', placed in the
+;; overlay's modification hook, notes this in the overlay's
+;; `org-preview-state' property.
 ;;
-;; This code examines the previous and current cursor
-;; positions after each command.  It uses the variables
-;; `org-latex-preview-mode--from-overlay' and `org-latex-preview-mode--marker' to track
-;; this.
+;; This code examines the previous and current cursor positions after
+;; each command.  It uses the variables
+;; `org-latex-preview-mode--from-overlay' and
+;; `org-latex-preview-mode--marker' to track this.
 ;;
-;; If the cursor has moved out of or into a latex preview overlay,
-;; the overlay is changed to display or hide its image respectively.
-;; The functions `org-latex-preview-mode--handle-pre-cursor' and
-;; `org-latex-preview-mode--handle-post-cursor' do this.  These are palced in
-;; `pre-command-hook' and `post-command-hook' respectively.
+;; If the cursor has moved out of or into a latex preview overlay, the
+;; overlay is changed to display or hide its image respectively.  The
+;; functions `org-latex-preview-mode--handle-pre-cursor' and
+;; `org-latex-preview-mode--handle-post-cursor' do this.  These are
+;; placed in `pre-command-hook' and `post-command-hook' respectively.
 ;;
 ;; When the cursor positions pre- and post-command are inside an
-;; overlay, it uses the overlay property `view-text' to check if the
-;; source and destination overlays are distinct.  If they are it shows
-;; and hides images as appropriate.
+;; overlay, it uses the overlay property `org-view-text' to check if
+;; the source and destination overlays are distinct.  If they are it
+;; shows and hides images as appropriate.  Hidden images are stored in
+;; the overlay property `org-preview-image'.
 ;;
 ;; If the latex fragment text for an existing overlay is modified, a
 ;; new preview image will be generated automatically.  The
 ;; modification state of the overlay is stored in the overlay property
-;; `preview-state', and the function
-;; `org-latex-preview-mode--close-previous-overlay' handles the recompilation.
+;; `org-preview-state', and the function
+;; `org-latex-preview-mode--close-previous-overlay' handles the
+;; recompilation.
 ;;
 ;; When the user option `org-latex-preview-mode-track-inserts' is
 ;; non-nil, previews are auto-generated for latex fragments as they
@@ -647,7 +649,7 @@ This is intended to be placed in `post-command-hook'."
                             'org-latex-overlay)))
     (cond
      ((and into-overlay-p org-latex-preview-mode--from-overlay)
-      (unless (or (get-char-property (point) 'view-text)     ;Moved within Same overlay
+      (unless (or (get-char-property (point) 'org-view-text)     ;Moved within Same overlay
                   (= (point) org-latex-preview-mode--marker) ;Did not move point
                   (get-char-property (point) 'invisible))    ;Overlay in invisible region
         ;; Jumped from overlay to overlay
@@ -749,10 +751,10 @@ If an org-latex-overlay is already present, nothing is done."
                               (member (match-string 1)
                                       org-latex-preview-mode-ignored-environments))))
                    (ov (org-latex-preview--ensure-overlay elem-beg elem-end)))
-         (overlay-put ov 'preview-state 'modified)
+         (overlay-put ov 'org-preview-state 'modified)
          (if (<= elem-beg pos elem-end)
              (progn
-               (overlay-put ov 'view-text t)
+               (overlay-put ov 'org-view-text t)
                ;; Record a position safely inside the created overlay
                (set-marker org-latex-preview-mode--marker
                            (min pos (1- elem-end)))
@@ -772,9 +774,9 @@ image and display its text."
                (not (memq this-command
                           org-latex-preview-mode-ignored-commands)))
       (overlay-put ov 'display nil)
-      (overlay-put ov 'view-text t)
+      (overlay-put ov 'org-view-text t)
       (when-let ((f (overlay-get ov 'face)))
-        (overlay-put ov 'hidden-face f)
+        (overlay-put ov 'org-hidden-face f)
         (overlay-put ov 'face nil))
       (org-latex-preview-mode--move-into ov)
       (setq org-latex-preview-mode--from-overlay nil)
@@ -788,8 +790,8 @@ recorded cursor position, hide its text and display the
 image.  The preview image is regenerated if necessary."
   (dolist (ov (overlays-at (marker-position org-latex-preview-mode--marker)))
     (when (eq (overlay-get ov 'org-overlay-type) 'org-latex-overlay)
-      (overlay-put ov 'view-text nil)
-      (if (eq (overlay-get ov 'preview-state) 'modified)
+      (overlay-put ov 'org-view-text nil)
+      (if (eq (overlay-get ov 'org-preview-state) 'modified)
           ;; It may seem odd to use an timer for this action, but by
           ;; introducing a brief window for Emacs to deal with input
           ;; events triggered during prior processing the perceptible
@@ -797,11 +799,11 @@ image.  The preview image is regenerated if necessary."
           ;; necesarily the optimal duration, but from a little
           ;; testing it appears to be fairly reasonable.
           (run-at-time 0.01 nil #'org-latex-preview-mode--regenerate-overlay ov)
-        (when-let (f (overlay-get ov 'hidden-face))
+        (when-let (f (overlay-get ov 'org-hidden-face))
           (unless (eq f 'org-latex-preview-processing-face)
             (overlay-put ov 'face f))
-          (overlay-put ov 'hidden-face nil))
-        (overlay-put ov 'display (overlay-get ov 'preview-image)))
+          (overlay-put ov 'org-hidden-face nil))
+        (overlay-put ov 'display (overlay-get ov 'org-preview-image)))
       (run-hook-with-args 'org-latex-preview-overlay-close-functions ov))))
 
 (defun org-latex-preview-mode--regenerate-overlay (ov &optional inhibit-renumbering)
@@ -848,7 +850,7 @@ AFTER-P, END and the other arguments, see the
 manual: (elisp) Overlay Properties."
   (when after-p
     (unless undo-in-progress
-      (if (eq (overlay-get ov 'preview-state) 'active)
+      (if (eq (overlay-get ov 'org-preview-state) 'active)
           (move-overlay ov end (overlay-end ov))))))
 
 (defun org-latex-preview-mode--insert-behind-handler
@@ -861,7 +863,7 @@ AFTER-P, BEG and the other arguments, see the
 manual: (elisp) Overlay Properties."
   (when after-p
     (unless undo-in-progress
-      (if (eq (overlay-get ov 'preview-state) 'active)
+      (if (eq (overlay-get ov 'org-preview-state) 'active)
           (move-overlay ov (overlay-end ov) beg)))))
 
 (defun org-latex-preview-mode--org-cycle (state)
@@ -1040,7 +1042,7 @@ Called with EXIT-CODE and EXTENDED-INFO from the async process."
     ;; this should always be the element being live-previewed, even
     ;; when there are numbering changes.
     (when-let* ((ov (cdr-safe (get-char-property-and-overlay (point) 'org-overlay-type)))
-                ((overlay-get ov 'view-text)))
+                ((overlay-get ov 'org-view-text)))
       (setq org-latex-preview-live--last-hash
             (plist-get
              (car (plist-get extended-info :fragments))
@@ -1095,7 +1097,7 @@ Ensures that FUNC runs at the end of the throttle duration."
   (overlay-put ov 'after-string nil)
   ;; When exiting live-preview, move the final image to the main cache
   (when-let ((org-latex-preview-live--last-hash)
-             ((overlay-get ov 'preview-image))
+             ((overlay-get ov 'org-preview-image))
              (path-info (org-latex-preview--get-cached
                          org-latex-preview-live--last-hash 'live)))
     ;; Copy final image data to main cache location
@@ -1121,9 +1123,9 @@ Org buffers when using live-updating LaTeX previews."
                ;; throttling inconsistent:
                ;; (<= (overlay-start ov) beg)
                ;; (>= (overlay-end ov) end)
-               (overlay-get ov 'preview-state))
+               (overlay-get ov 'org-preview-state))
       (org-latex-preview-mode--regenerate-overlay ov t)
-      (unless (and (overlay-buffer ov) (overlay-get ov 'preview-image))
+      (unless (and (overlay-buffer ov) (overlay-get ov 'org-preview-image))
         (org-latex-preview-live--clearout ov)))))
 
 (defun org-latex-preview-live--update-props (image-spec &optional box-face)
@@ -1146,7 +1148,7 @@ BOX-FACE is the face to apply in addition."
                (let ((props (get-char-property-and-overlay (point) 'org-overlay-type)))
                  (and (eq (car props) 'org-latex-overlay)
                       (cdr props)))))
-       (image (overlay-get ov 'preview-image))
+       (image (overlay-get ov 'org-preview-image))
        (end (overlay-end ov)))
     (let ((latex-env-p
            (progn
@@ -1170,19 +1172,19 @@ BOX-FACE is the face to apply in addition."
             ;; image to render correctly.
             (setq org-latex-preview-live--docstring
                   (concat (and latex-env-p "\n​") " "))
-            (overlay-put ov 'view-text t)
+            (overlay-put ov 'org-view-text t)
             (overlay-put ov 'after-string org-latex-preview-live--docstring)))
         (org-latex-preview-live--update-props image '(:box t))))))
 
 (defun org-latex-preview-live--update-overlay (ov)
   "Update the live LaTeX preview for overlay OV."
   (when (and (memq ov (overlays-at (point)))
-             (overlay-get ov 'view-text))
+             (overlay-get ov 'org-view-text))
     (if (or (overlay-get ov 'after-string)
             (eq org-latex-preview-mode-display-type
                 'eldoc))
         (org-latex-preview-live--update-props
-         (overlay-get ov 'preview-image))
+         (overlay-get ov 'org-preview-image))
       (org-latex-preview-live--ensure-overlay ov))))
 
 ;; Code for previews in org-src buffers
@@ -1244,7 +1246,7 @@ This is meant to be called via `org-src-mode-hook'."
                 preamble (or org-latex-preview--preamble-content
                              (setq org-latex-preview--preamble-content
                                    (org-latex-preview--get-preamble))))
-          (overlay-put ov 'view-text t)
+          (overlay-put ov 'org-view-text t)
           (move-overlay ov beg end src-buf))
         (org-latex-preview-mode--close-previous-overlay))
       (unless skip-env-p
@@ -1481,7 +1483,7 @@ should it be enabled."
               (overlays-at beg))))
     ;; If using auto-mode, an overlay will already exist but
     ;; not be showing an image.  We can detect this
-    ;; situtation via the preview-state overlay property, and
+    ;; situtation via the org-preview-state overlay property, and
     ;; in such cases the most reasonable action is to just
     ;; (re)generate the preview image.
     (cond
@@ -1497,9 +1499,9 @@ should it be enabled."
        org-latex-preview-process-default (list datum))
       (message "Creating LaTeX preview"))
      ;; When on a just written/edited fragment that should be previewed.
-     ((eq (overlay-get ov 'preview-state) 'modified)
+     ((eq (overlay-get ov 'org-preview-state) 'modified)
       (org-latex-preview-mode--regenerate-overlay ov)
-      (overlay-put ov 'view-text t))
+      (overlay-put ov 'org-view-text t))
      ;; When on an unmodified fragment that is currently showing an image,
      ;; clear the image.
      ((overlay-get ov 'display)
@@ -1508,10 +1510,10 @@ should it be enabled."
      ;; Since we're on an unmodified fragment but not showing an image,
      ;; let's try to show the image if possible.
      (ov
-      (overlay-put ov 'view-text t)
+      (overlay-put ov 'org-view-text t)
       (unless (overlay-get ov 'after-string) ;Live preview being shown
-        (overlay-put ov 'face (overlay-get ov 'hidden-face))
-        (overlay-put ov 'display (overlay-get ov 'preview-image)))))))
+        (overlay-put ov 'face (overlay-get ov 'org-hidden-face))
+        (overlay-put ov 'display (overlay-get ov 'org-preview-image)))))))
 
 (defun org-latex-preview-collect-fragments (&optional beg end)
   "Collect all LaTeX maths fragments/environments between BEG and END."
