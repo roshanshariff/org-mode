@@ -22,7 +22,34 @@
 
 ;;; Commentary:
 ;;
-;;  LaTeX previews for Org
+;; Library to support LaTeX previews in Org mode.
+;;
+;; This library provides the command `org-latex-preview' to generate
+;; or hide preview images for LaTeX fragments or environments in Org
+;; buffers.
+;;
+;; The minor-mode `org-latex-preview-mode' can be turned on for more
+;; dynamic and interactive previews:
+;; - LaTeX preview images will be hidden and shown again when the
+;;   cursor enters and exits the corresponding LaTeX fragment.
+;; - Previews will be automatically regenerated when the cursor leaves
+;;   an edited fragment.
+;; - Previews for LaTeX fragments in text yanked or inserted into the
+;;   buffer will be automatically generated
+;; - If `org-latex-preview-mode-display-live' is set, previews will be
+;;   continuously updated and displayed next to the fragment as they
+;;   are edited.
+;;
+;; Additionally, this library provides general purpose functions for
+;; generating, displaying or managing latex previews anywhere in Emacs:
+;; - `org-latex-preview-place' can be used to place image previews
+;;   over the text of LaTeX fragments or environments in any buffer
+;;   in Emacs.  This works in any major-mode.
+;; - `org-latex-preview-create-images' accepts a list of LaTeX
+;;   fragment strings and returns a list of images.
+;; - `org-latex-preview-cache-images' produces preview images for all
+;;   LaTeX fragments in an Org parse-tree.  This is intended for use
+;;   by Org export backends.
 
 ;;; Code:
 
