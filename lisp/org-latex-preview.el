@@ -1106,7 +1106,7 @@ Ensures that FUNC runs at the end of the throttle duration."
            (setq waiting nil)
            (apply func args)))))))
 
-(defun org-latex-preview-live--clearout (ov)
+(defun org-latex-preview-live--clearout-overlay (ov)
   "Clear out the live LaTeX preview for the preview overlay OV."
   (setq org-latex-preview-live--element-type nil)
   (overlay-put ov 'after-string nil)
@@ -1141,7 +1141,7 @@ Org buffers when using live-updating LaTeX previews."
                (overlay-get ov 'org-preview-state))
       (org-latex-preview-mode--regenerate-overlay ov t)
       (unless (and (overlay-buffer ov) (overlay-get ov 'org-preview-image))
-        (org-latex-preview-live--clearout ov)))))
+        (org-latex-preview-live--clearout-overlay ov)))))
 
 (defun org-latex-preview-live--update-props (image-spec &optional box-face)
   "Update the live preview string with the IMAGE-SPEC display property.
@@ -1156,7 +1156,7 @@ BOX-FACE is the face to apply in addition."
        (1- l) l 'face box-face
        org-latex-preview-live--docstring))))
 
-(defun org-latex-preview-live--ensure-overlay (&optional ov)
+(defun org-latex-preview-live--setup-overlay (&optional ov)
   "Set up a live preview for the LaTeX fragment with overlay OV."
   (when-let*
       ((ov (or ov
@@ -1200,7 +1200,7 @@ BOX-FACE is the face to apply in addition."
                 'eldoc))
         (org-latex-preview-live--update-props
          (overlay-get ov 'org-preview-image))
-      (org-latex-preview-live--ensure-overlay ov))))
+      (org-latex-preview-live--setup-overlay ov))))
 
 ;; Code for previews in org-src buffers
 (defun org-latex-preview-live--src-buffer-setup ()
@@ -1256,7 +1256,7 @@ This is meant to be called via `org-src-mode-hook'."
                                        (point) 'org-overlay-type)))
                            (and (eq (car props) 'org-latex-overlay)
                                 (cdr props)))))
-          (org-latex-preview-live--clearout orig-ov)
+          (org-latex-preview-live--clearout-overlay orig-ov)
           (setq ov (copy-overlay orig-ov)
                 preamble (or org-latex-preview--preamble-content
                              (setq org-latex-preview--preamble-content
@@ -1307,7 +1307,7 @@ This is meant to be called via `org-src-mode-hook'."
                           (org-element-type element))))
                    (preview-clearout-func
                     (lambda (ov)
-                      (org-latex-preview-live--clearout ov)
+                      (org-latex-preview-live--clearout-overlay ov)
                       (setq org-latex-preview-live--element-type element-type))))
               ;; Set the element type ahead of time since we cannot call
               ;; org-element-context in the org-src buffer
@@ -1315,7 +1315,7 @@ This is meant to be called via `org-src-mode-hook'."
               (add-hook 'org-latex-preview-overlay-close-functions
                         preview-clearout-func nil 'local))
             (add-hook 'org-latex-preview-overlay-open-functions
-                      #'org-latex-preview-live--ensure-overlay nil 'local)
+                      #'org-latex-preview-live--setup-overlay nil 'local)
             (add-hook 'org-latex-preview-overlay-update-functions
                       #'org-latex-preview-live--update-overlay nil 'local)
             (setq-local org-latex-preview-live--generator
@@ -1336,7 +1336,7 @@ This is meant to be called via `org-src-mode-hook'."
                            org-latex-preview-mode-update-delay)))
             (add-hook 'after-change-functions org-latex-preview-live--generator 90 'local)
             ;; Show live preview if available
-            (org-latex-preview-live--ensure-overlay ov)))
+            (org-latex-preview-live--setup-overlay ov)))
         ;; Turn on auto-mode behavior in the org-src buffer
         (add-hook 'pre-command-hook #'org-latex-preview-mode--handle-pre-cursor nil 'local)
         (add-hook 'post-command-hook #'org-latex-preview-mode--handle-post-cursor nil 'local)))))
@@ -1370,8 +1370,8 @@ See `org-latex-preview-mode-display-live' for details."
     (add-hook 'eldoc-documentation-functions #'org-latex-preview-live--display-in-eldoc nil t)
     (add-hook 'org-latex-preview-overlay-update-functions #'org-latex-preview-live--update-eldoc nil 'local))
   (add-hook 'org-src-mode-hook #'org-latex-preview-live--src-buffer-setup)
-  (add-hook 'org-latex-preview-overlay-close-functions #'org-latex-preview-live--clearout nil 'local)
-  (add-hook 'org-latex-preview-overlay-open-functions #'org-latex-preview-live--ensure-overlay nil 'local)
+  (add-hook 'org-latex-preview-overlay-close-functions #'org-latex-preview-live--clearout-overlay nil 'local)
+  (add-hook 'org-latex-preview-overlay-open-functions #'org-latex-preview-live--setup-overlay nil 'local)
   (add-hook 'after-change-functions org-latex-preview-live--generator 90 'local)
   (add-hook 'org-latex-preview-process-finish-functions #'org-latex-preview-live--record-hook nil 'local)
   (add-hook 'org-latex-preview-overlay-update-functions #'org-latex-preview-live--update-overlay nil 'local))
@@ -1383,12 +1383,12 @@ See `org-latex-preview-mode-display-live' for details."
   (when-let* ((props (get-char-property-and-overlay (point) 'org-overlay-type))
               ((eq (car props) 'org-latex-overlay))
               (ov (cdr props)))
-    (org-latex-preview-live--clearout ov))
+    (org-latex-preview-live--clearout-overlay ov))
   (when (eq org-latex-preview-mode-display-type 'eldoc)
     (remove-hook 'eldoc-documentation-functions #'org-latex-preview-live--display-in-eldoc t)
     (remove-hook 'org-latex-preview-overlay-update-functions #'org-latex-preview-live--update-eldoc 'local))
-  (remove-hook 'org-latex-preview-overlay-close-functions #'org-latex-preview-live--clearout 'local)
-  (remove-hook 'org-latex-preview-overlay-open-functions #'org-latex-preview-live--ensure-overlay 'local)
+  (remove-hook 'org-latex-preview-overlay-close-functions #'org-latex-preview-live--clearout-overlay 'local)
+  (remove-hook 'org-latex-preview-overlay-open-functions #'org-latex-preview-live--setup-overlay 'local)
   (remove-hook 'after-change-functions org-latex-preview-live--generator 'local)
   (remove-hook 'org-latex-preview-overlay-update-functions #'org-latex-preview-live--update-overlay 'local)
   (remove-hook 'org-latex-preview-process-finish-functions #'org-latex-preview-live--record-hook 'local)
