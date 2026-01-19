@@ -1550,30 +1550,23 @@ should it be enabled."
   "Produce image overlays of LaTeX math fragments between BEG and END.
 
 The LaTeX fragments are processed using PROCESSING-TYPE, a key of
-`org-latex-preview-process-alist'.
-
-If `point' is currently on an LaTeX overlay, then no overlays
-will be generated.  Since in practice `org-latex-preview-clear-overlays'
-should have been called immediately prior to this function, this
-situation should not occur in practice and mainly acts as
-protection against placing doubled up overlays."
+`org-latex-preview-process-alist'."
   (when (fboundp 'clear-image-cache)
     (clear-image-cache))
   ;; Optimize overlay creation: (info "(elisp) Managing Overlays").
   (when (memq processing-type '(dvipng dvisvgm imagemagick))
+    ;; FIXME: `overlay-recenter' is a noop since Emacs 29.1
     (overlay-recenter (or end (point-max))))
-  (unless (eq (get-char-property (point) 'org-overlay-type)
-              'org-latex-overlay)
-    (let ((ws (if (window-live-p (get-buffer-window (current-buffer)))
-                  (window-start) 0)))
-      (if (assq processing-type org-latex-preview-process-alist)
-          (org-latex-preview--place-from-elements
-           processing-type
-           (nconc (org-latex-preview-collect-fragments (max ws beg) end)
-                  (when (< beg ws)
-                    (org-latex-preview-collect-fragments beg (1- ws)))))
-        (error "Unknown conversion process %s for previewing LaTeX fragments"
-               processing-type)))))
+  (let ((ws (if (window-live-p (get-buffer-window (current-buffer)))
+                (window-start) 0)))
+    (if (assq processing-type org-latex-preview-process-alist)
+        (org-latex-preview--place-from-elements
+         processing-type
+         (nconc (org-latex-preview-collect-fragments (max ws beg) end)
+                (when (< beg ws)
+                  (org-latex-preview-collect-fragments beg (1- ws)))))
+      (error "Unknown conversion process %s for previewing LaTeX fragments"
+             processing-type))))
 
 (defun org-latex-preview--construct-entries
     (elements &optional construct-numbering-p parse-tree)
