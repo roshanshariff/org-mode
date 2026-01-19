@@ -666,12 +666,12 @@ This is intended to be placed in `post-command-hook'."
      ((and into-overlay-p org-latex-preview-mode--from-overlay)
       (unless (or (get-char-property (point) 'org-view-text)     ;Moved within Same overlay
                   (= (point) org-latex-preview-mode--marker) ;Did not move point
-                  (get-char-property (point) 'invisible))    ;Overlay in invisible region
+                  (invisible-p (point))) ;Overlay in invisible region
         ;; Jumped from overlay to overlay
         (org-latex-preview-mode--close-previous-overlay)
         (org-latex-preview-mode--open-this-overlay)))
      ((and into-overlay-p (not org-latex-preview-mode--from-overlay))
-      (unless (get-char-property (point) 'invisible) ;Overlay in invisible region
+      (unless (invisible-p (point)) ;Overlay in invisible region
         ;; Moved into overlay
         (org-latex-preview-mode--open-this-overlay)))
      (org-latex-preview-mode--from-overlay
@@ -713,14 +713,12 @@ This is only active when either
         ;; characters of content. Then we can check if the line starts
         ;; with "\beg" or "\end", and if so check for a LaTeX environment.
         (goto-char beg)
-        (beginning-of-line)
+        (forward-line 0)
         (skip-chars-forward " \t")
         (when (< (point) end)
-          (let ((line-start-positions
-                 (and (> (point-max) (+ 4 (point)))
-                      (list (point)))))
-            (while (and (< (point) end)
-                        (search-forward "\n" end t))
+          (let ((line-start-positions (and (> (point-max) (+ 4 (point)))
+                                           (list (point)))))
+            (while (and (< (point) end) (= 0 (forward-line 1)))
               (skip-chars-forward " \t")
               (when (> (point-max) (+ 4 (point)))
                 (push (point) line-start-positions)))
