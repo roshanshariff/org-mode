@@ -352,11 +352,13 @@ See `org-latex-preview-process-active-indicator'."
 \[PACKAGES]
 \\usepackage{xcolor}"
   "The document header used for processing LaTeX fragments.
-It is imperative that this header make sure that no page number
-appears on the page.  The package defined in the variables
-`org-latex-default-packages-alist' and `org-latex-packages-alist'
-will either replace the placeholder \"[PACKAGES]\" in this
-header, or they will be appended."
+
+It is imperative that this header make sure that no page number appears
+on the page.  The package defined in the variables
+`org-latex-default-packages-alist' and `org-latex-packages-alist' will
+replace the placeholder \"[PACKAGES]\" in this header.  See
+`org-splice-latex-header' for more details on the available placeholders
+and template expansion."
   :group 'org-latex-preview
   :package-version '(Org . "10.0")
   :type 'string)
