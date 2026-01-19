@@ -1337,7 +1337,7 @@ This is meant to be called via `org-src-mode-hook'."
             (add-hook 'after-change-functions org-latex-preview-live--generator 90 'local)
             ;; Show live preview if available
             (org-latex-preview-live--setup-overlay ov)))
-        ;; Turn on auto-mode behavior in the org-src buffer
+        ;; Turn on org-latex-preview-mode behavior in the org-src buffer
         (add-hook 'pre-command-hook #'org-latex-preview-mode--handle-pre-cursor nil 'local)
         (add-hook 'post-command-hook #'org-latex-preview-mode--handle-post-cursor nil 'local)))))
 
@@ -1479,12 +1479,12 @@ will be treated as \"point\"."
       ('point
        (when-let ((datum (org-element-context))
                   ((memq (org-element-type datum) '(latex-environment latex-fragment))))
-         (org-latex-preview--auto-aware-toggle datum)))
+         (org-latex-preview--mode-aware-toggle datum)))
       ((guard (memq (org-element-type mode) '(latex-environment latex-fragment)))
-       (org-latex-preview--auto-aware-toggle mode))
+       (org-latex-preview--mode-aware-toggle mode))
       (bad-value (error "Invalid `org-latex-preview' mode argument: %S" bad-value)))))
 
-(defun org-latex-preview--auto-aware-toggle (datum)
+(defun org-latex-preview--mode-aware-toggle (datum)
   "Toggle the preview of the LaTeX fragment/environment DATUM.
 This is done with care to work nicely with `org-latex-preview-mode',
 should it be enabled."
@@ -1496,19 +1496,19 @@ should it be enabled."
                          'org-latex-overlay)
                      o))
               (overlays-at beg))))
-    ;; If using auto-mode, an overlay will already exist but
-    ;; not be showing an image.  We can detect this
-    ;; situtation via the org-preview-state overlay property, and
-    ;; in such cases the most reasonable action is to just
-    ;; (re)generate the preview image.
+    ;; If using org-latex-preview-mode, an overlay will already exist
+    ;; but not be showing an image.  We can detect this situtation via
+    ;; the org-preview-state overlay property, and in such cases the
+    ;; most reasonable action is to just (re)generate the preview
+    ;; image.
     (cond
-     ;; When not using auto-mode.
+     ;; When not using preview-mode.
      ((not org-latex-preview-mode)
       (if (org-latex-preview-clear-overlays beg end)
           (message "LaTeX preview removed")
         (org-latex-preview--place-from-elements
          org-latex-preview-process-default (list datum))))
-     ;; When using auto-mode, but no current preview.
+     ;; When using preview-mode, but no current preview.
      ((not ov)
       (org-latex-preview--place-from-elements
        org-latex-preview-process-default (list datum))
@@ -1775,7 +1775,7 @@ NUMBER is the equation number that should be used, if applicable."
   "List of LaTeX environments which produce numbered equations.")
 
 (defun org-latex-preview--environment-numbering-table (&optional parse-tree)
-  "Creat a hash table from numbered equations to their initial index.
+  "Create a hash table from numbered equations to their initial index.
 If the org-element cache is active or PARSE-TREE is provided, the
 hash table will use `eq' equality, otherwise `equal' will be
 used.  When PARSE-TREE is provided, it is passed onto
@@ -1791,7 +1791,8 @@ used.  When PARSE-TREE is provided, it is passed onto
         (cl-incf counter (org-latex-preview--count-numbered-equations element))))
     table))
 
-(defvar org-latex-preview--numbering-count-buffer nil)
+(defvar org-latex-preview--numbering-count-buffer nil
+  "Buffer used for equation numbering calculations.")
 
 (defun org-latex-preview--count-numbered-equations (element)
   "Count the number of numbered equations within Org ELEMENT.
@@ -2123,7 +2124,7 @@ SCALE see `org-latex-preview-cache-images'."
 
 (cl-defun org-latex-preview--create-image-async
     (processing-type fragments-info &key latex-processor latex-preamble appearance-options place-preview-p)
-  "Preview PREVIEW-STRINGS asynchronously with method PROCESSING-TYPE.
+  "Preview FRAGMENTS-INFO asynchronously with method PROCESSING-TYPE.
 
 FRAGMENTS-INFO is a list of plists, each of which provides
 information on an individual fragment and should have the
@@ -2134,8 +2135,8 @@ where
 - fragment-overlay is the overlay placed for the fragment
 - fragment-hash is a string that uniquely identifies the fragment
 
-It is worth noting the FRAGMENTS-INFO plists will be modified
-during processing to hold more information on the fragments.
+The FRAGMENTS-INFO plists will be modified during processing to hold
+more information on the fragments.
 
 When PLACE-PREVIEW-P is true, it will be set in the extended info
 plist passed to filters, and is expected to result in the newly
