@@ -2144,8 +2144,8 @@ Returns a list of async tasks started."
                                 '("LATEX_COMPILER") '("LATEX_COMPILER")))))
               org-latex-compiler))
          (processing-info
-          (nconc (list :latex-processor latex-processor
-                       :latex-header latex-preamble)
+          (nconc (list :latex-processor latex-processor)
+                 (and latex-preamble (list :latex-header latex-preamble))
                  (alist-get processing-type org-latex-preview-process-alist)))
          (programs (plist-get processing-info :programs))
          (error-message (or (plist-get processing-info :message) "")))
@@ -2276,21 +2276,21 @@ Returns a list of async tasks started."
          'org-latex-preview-process-finish-functions
          args))
 
-(defun org-latex-preview--failure-callback (exit-code _buf extended-info)
+(defun org-latex-preview--failure-callback (exit-code buf extended-info)
   "Clear overlays corresponding to previews that failed to generate with EXIT-CODE.
 
-EXTENDED-INFO contains the information needed to identify such
-previews."
+BUF is the process buffer, and EXTENDED-INFO contains the information
+needed to identify such previews."
   (message "Creating LaTeX preview images failed (exit code %d). Please see %s for details"
            exit-code
            (if (pcase (plist-get extended-info :processor)
                  ('dvisvgm (eq exit-code 252)) ; Input file does not exist.
                  ('dvipng ; Same check, just a bit more involved.
                   (and (eq exit-code 1)
-                       (with-current-buffer
-                           (save-excursion
-                             (goto-char (point-min))
-                             (search-forward ": No such file or directory" nil t))))))
+                       (with-current-buffer buf
+                         (save-excursion
+                           (goto-char (point-min))
+                           (search-forward ": No such file or directory" nil t))))))
                (propertize org-latex-preview--latex-log 'face 'warning)
              (propertize org-latex-preview--image-log 'face 'warning)))
   (with-current-buffer (plist-get extended-info :org-buffer)
