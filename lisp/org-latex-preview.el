@@ -1945,6 +1945,8 @@ environment in PARSE-TREE, and correspdonding value is a list
 containing image information.  This list has the format
  (path . image-info).
 
+Note: It is assumed that the current buffer is the origin of PARSE-TREE.
+
  For example:
   (\"/path/.../to/image.svg\"
     :type svg
