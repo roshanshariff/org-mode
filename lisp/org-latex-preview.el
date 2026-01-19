@@ -1802,7 +1802,8 @@ Note: this function changes the current match data."
             environment-name)
         (with-current-buffer (org-element-property :buffer element)
           (save-excursion
-            (goto-char (org-element-property :begin element))
+            (goto-char (or (org-element-property :post-affiliated element)
+                           (org-element-property :begin element)))
             (when (looking-at "\\\\begin{\\([^}]+\\)}")
               (setq environment-name (match-string 1)))
             (cond
@@ -1836,7 +1837,9 @@ Note: this function changes the current match data."
       (erase-buffer)
       (insert-buffer-substring-no-properties
        (org-element-property :buffer element)
-       (org-element-property :begin element) (org-element-property :end element))
+       (or (org-element-property :post-affiliated element)
+           (org-element-property :begin element))
+       (org-element-property :end element))
       (goto-char (point-min))
       (org-skip-whitespace)
       ;; Remove the "outer" environment, so we can then
@@ -1879,7 +1882,7 @@ Note: this function changes the current match data."
 (defun org-latex-preview--get-numbered-environments (&optional beg end parse-tree)
   "Find all numbered environments between BEG and END.
 If PARSE-TREE is provided, it will be used insead of
-`org-element-cache-map' or `org-element-parse-buffer'."
+`org-element-cache-map'."
   (cond
    (parse-tree
     (org-element-map
@@ -1893,7 +1896,7 @@ If PARSE-TREE is provided, it will be used insead of
                               (match-string 1 content))))
                (and (member env org-latex-preview--numbered-environments-all)
                     datum))))))
-   ((org-element--cache-active-p)
+   (t
     (org-element-cache-map
      (lambda (datum)
        (and (<= (or beg (point-min)) (org-element-property :begin datum)
@@ -1906,21 +1909,7 @@ If PARSE-TREE is provided, it will be used insead of
      :granularity 'element
      :restrict-elements '(latex-environment)
      :from-pos beg
-     :to-pos (or end (point-max-marker))))
-   (t
-    (org-element-map
-        (org-element-parse-buffer 'element)
-        '(latex-environment)
-      (lambda (datum)
-        (and (<= (or beg (point-min)) (org-element-property :begin datum)
-                 (org-element-property :end datum) (or end (point-max)))
-             (let* ((content (org-element-property :value datum))
-                    (env (and (string-match "\\`\\\\begin{\\([^}]+\\)}" content)
-                              (match-string 1 content))))
-               (and (member env org-latex-preview--numbered-environments-all)
-                    (save-excursion
-                      (goto-char (org-element-property :begin datum))
-                      (org-element-context))))))))))
+     :to-pos (or end (point-max-marker))))))
 
 (cl-defun org-latex-preview-cache-images
     (parse-tree &optional export-info
