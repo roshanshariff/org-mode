@@ -414,6 +414,51 @@ the image.")
 (defconst org-latex-preview--overlay-priority -80
   "The priority used with preview overlays.")
 
+;; Code for `org-latex-preview-mode':
+;;
+;; The boundaries of latex preview image overlays are automatically
+;; extended to track changes in the underlying text by the functions
+;; `org-latex-preview-mode--insert-front-handler' and
+;; `org-latex-preview-mode--insert-behind-handler'.  These are placed
+;; in the `insert-in-front-hooks' and `insert-behind-hooks' properties
+;; of the image overlays. See (info "(elisp) Overlay Properties").
+;;
+;; Additionally, when an overlay's text is modified,
+;; `org-latex-preview-mode--mark-overlay-modified', placed in the
+;; overlay's modification hook, notes this in the overlay's
+;; `org-preview-state' property.
+;;
+;; This code examines the previous and current cursor positions after
+;; each command.  It uses the variables
+;; `org-latex-preview-mode--from-overlay' and
+;; `org-latex-preview-mode--marker' to track this.
+;;
+;; If the cursor has moved out of or into a latex preview overlay, the
+;; overlay is changed to display or hide its image respectively.  The
+;; functions `org-latex-preview-mode--handle-pre-cursor' and
+;; `org-latex-preview-mode--handle-post-cursor' do this.  These are
+;; placed in `pre-command-hook' and `post-command-hook' respectively.
+;;
+;; When the cursor positions pre- and post-command are inside an
+;; overlay, it uses the overlay property `org-view-text' to check if
+;; the source and destination overlays are distinct.  If they are it
+;; shows and hides images as appropriate.  Hidden images are stored in
+;; the overlay property `org-preview-image'.
+;;
+;; If the latex fragment text for an existing overlay is modified, a
+;; new preview image will be generated automatically.  The
+;; modification state of the overlay is stored in the overlay property
+;; `org-preview-state', and the function
+;; `org-latex-preview-mode--close-previous-overlay' handles the
+;; recompilation.
+;;
+;; When the user option `org-latex-preview-mode-track-inserts' is
+;; non-nil, previews are auto-generated for latex fragments as they
+;; are inserted into the buffer.  This work is handled by
+;; `org-latex-preview-mode--detect-fragments-in-change', which is added to
+;; `after-change-functions'.  It does this by placing dummy overlays
+;; that don't display images, but are marked as having been modified.
+
 (defun org-latex-preview--ensure-overlay (beg end)
   "Build an overlay between BEG and END."
   (let (ov)
@@ -560,51 +605,6 @@ Faces in `org-latex-preview--ignored-faces' are ignored."
      ((and face (not (memq face org-latex-preview--ignored-faces)))
       (list face normalising-face))
      (t normalising-face))))
-
-;; Code for `org-latex-preview-mode':
-;;
-;; The boundaries of latex preview image overlays are automatically
-;; extended to track changes in the underlying text by the functions
-;; `org-latex-preview-mode--insert-front-handler' and
-;; `org-latex-preview-mode--insert-behind-handler'.  These are placed
-;; in the `insert-in-front-hooks' and `insert-behind-hooks' properties
-;; of the image overlays. See (info "(elisp) Overlay Properties").
-;;
-;; Additionally, when an overlay's text is modified,
-;; `org-latex-preview-mode--mark-overlay-modified', placed in the
-;; overlay's modification hook, notes this in the overlay's
-;; `org-preview-state' property.
-;;
-;; This code examines the previous and current cursor positions after
-;; each command.  It uses the variables
-;; `org-latex-preview-mode--from-overlay' and
-;; `org-latex-preview-mode--marker' to track this.
-;;
-;; If the cursor has moved out of or into a latex preview overlay, the
-;; overlay is changed to display or hide its image respectively.  The
-;; functions `org-latex-preview-mode--handle-pre-cursor' and
-;; `org-latex-preview-mode--handle-post-cursor' do this.  These are
-;; placed in `pre-command-hook' and `post-command-hook' respectively.
-;;
-;; When the cursor positions pre- and post-command are inside an
-;; overlay, it uses the overlay property `org-view-text' to check if
-;; the source and destination overlays are distinct.  If they are it
-;; shows and hides images as appropriate.  Hidden images are stored in
-;; the overlay property `org-preview-image'.
-;;
-;; If the latex fragment text for an existing overlay is modified, a
-;; new preview image will be generated automatically.  The
-;; modification state of the overlay is stored in the overlay property
-;; `org-preview-state', and the function
-;; `org-latex-preview-mode--close-previous-overlay' handles the
-;; recompilation.
-;;
-;; When the user option `org-latex-preview-mode-track-inserts' is
-;; non-nil, previews are auto-generated for latex fragments as they
-;; are inserted into the buffer.  This work is handled by
-;; `org-latex-preview-mode--detect-fragments-in-change', which is added to
-;; `after-change-functions'.  It does this by placing dummy overlays
-;; that don't display images, but are marked as having been modified.
 
 (defvar-local org-latex-preview-mode--from-overlay nil
   "Whether the cursor if starting from within a preview overlay.")
