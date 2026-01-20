@@ -676,8 +676,9 @@ This is intended to be placed in `pre-command-hook'."
   (if org-latex-preview-mode--inhibit
       (setq org-latex-preview-mode--inhibit nil)
     (setq org-latex-preview-mode--from-overlay
-          (eq (get-char-property (point) 'org-overlay-type)
-              'org-latex-overlay))
+          (cl-loop for o in (overlays-at (point))
+                   thereis (eq (overlay-get o 'org-overlay-type)
+                               'org-latex-overlay)))
     (set-marker org-latex-preview-mode--marker (point))))
 
 (defun org-latex-preview-mode--handle-post-cursor ()
@@ -689,8 +690,10 @@ out of a preview overlay, show the image again or generate a new
 one as appropriate.
 
 This is intended to be placed in `post-command-hook'."
-  (let ((into-overlay-p (eq (get-char-property (point) 'org-overlay-type)
-                            'org-latex-overlay)))
+  (let ((into-overlay-p
+         (cl-loop for o in (overlays-at (point))
+                  thereis (eq (overlay-get o 'org-overlay-type)
+                              'org-latex-overlay))))
     (cond
      ((and into-overlay-p org-latex-preview-mode--from-overlay)
       (unless (or (get-char-property (point) 'org-view-text)     ;Moved within Same overlay
@@ -775,8 +778,9 @@ If POS lies within the element, nil is returned.  Otherwise the
 element is returned to be used to generate a preview.
 
 If an org-latex-overlay is already present, nothing is done."
-  (and (not (eq (get-char-property (point) 'org-overlay-type)
-                'org-latex-overlay))
+  (and (cl-loop for o in (overlays-at (point))
+                never (eq (overlay-get o 'org-overlay-type)
+                          'org-latex-overlay))
        (when-let* ((element (org-element-context))
                    ((eq (org-element-type element) type))
                    (elem-beg (or (org-element-property :post-affiliated element)
@@ -1096,7 +1100,9 @@ Called with EXIT-CODE and EXTENDED-INFO from the async process."
     ;; Save the first previewed element's hash.  When live-previewing
     ;; this should always be the element being live-previewed, even
     ;; when there are numbering changes.
-    (when-let* ((ov (cdr-safe (get-char-property-and-overlay (point) 'org-overlay-type)))
+    (when-let* ((ov (cl-loop for o in (overlays-at (point))
+                             if (eq (overlay-get o 'org-overlay-type) 'org-latex-overlay)
+                             return o))
                 ((overlay-get ov 'org-view-text)))
       (setq org-latex-preview-live--last-hash
             (plist-get
@@ -1159,15 +1165,16 @@ Ensures that FUNC runs at the end of the throttle duration."
 
 This is meant to be run via the `after-change-functions' hook in
 Org buffers when using live-updating LaTeX previews."
-  (pcase-let ((`(,type . ,ov)
-               (get-char-property-and-overlay (point) 'org-overlay-type))
-              (org-latex-preview-cache 'live))
-    (when (and ov (eq type 'org-latex-overlay)
-               ;; The following checks are redundant and can make
-               ;; throttling inconsistent:
-               ;; (<= (overlay-start ov) beg)
-               ;; (>= (overlay-end ov) end)
-               (overlay-get ov 'org-preview-state))
+  (let ((ov (cl-loop for o in (overlays-at (point))
+                     if (and (eq (overlay-get o 'org-overlay-type) 'org-latex-overlay)
+                             (overlay-get o 'org-preview-state))
+                     return o))
+        (org-latex-preview-cache 'live))
+    (when ov
+      ;; The following checks are redundant and can make
+      ;; throttling inconsistent:
+      ;; (<= (overlay-start ov) beg)
+      ;; (>= (overlay-end ov) end)
       (org-latex-preview-mode--regenerate-overlay ov t)
       (unless (and (overlay-buffer ov) (overlay-get ov 'org-preview-image))
         (org-latex-preview-live--clearout-overlay ov)))))
@@ -1188,10 +1195,10 @@ BOX-FACE is the face to apply in addition."
 (defun org-latex-preview-live--setup-overlay (&optional ov)
   "Set up a live preview for the LaTeX fragment with overlay OV."
   (when-let*
-      ((ov (or ov
-               (let ((props (get-char-property-and-overlay (point) 'org-overlay-type)))
-                 (and (eq (car props) 'org-latex-overlay)
-                      (cdr props)))))
+      ((ov (or ov (cl-loop
+                   for o in (overlays-at (point))
+                   if (eq (overlay-get o 'org-overlay-type) 'org-latex-overlay)
+                   return o)))
        (image (overlay-get ov 'org-preview-image))
        (end (overlay-end ov)))
     (let ((latex-env-p
@@ -1377,7 +1384,9 @@ This is meant to be called via `org-src-mode-hook'."
 CALLBACK is supplied by Eldoc, see
 `eldoc-documentation-functions'."
   (when (and org-latex-preview-live--docstring
-             (get-char-property (point) 'org-overlay-type))
+             (cl-loop for o in (overlays-at (point))
+                      thereis (eq (overlay-get o 'org-overlay-type)
+                                  'org-latex-overlay)))
     (funcall callback org-latex-preview-live--docstring)))
 
 (defun org-latex-preview-live--update-eldoc (_ov)
@@ -1409,9 +1418,9 @@ See `org-latex-preview-mode-display-live' for details."
   "Remove hooks for live LaTeX previews.
 
 See `org-latex-preview-mode-display-live' for details."
-  (when-let* ((props (get-char-property-and-overlay (point) 'org-overlay-type))
-              ((eq (car props) 'org-latex-overlay))
-              (ov (cdr props)))
+  (when-let* ((ov (cl-loop for o in (overlays-at (point))
+                           if (eq (overlay-get o 'org-overlay-type) 'org-latex-overlay)
+                           return o)))
     (org-latex-preview-live--clearout-overlay ov))
   (when (eq org-latex-preview-mode-display-type 'eldoc)
     (remove-hook 'eldoc-documentation-functions #'org-latex-preview-live--display-in-eldoc t)
