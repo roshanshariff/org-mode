@@ -2263,6 +2263,55 @@ Returns a list of async tasks started."
     ;;   ├─ cache pngs with org-persist or in /tmp
     ;;   └─ update overlays in buffer with png images and metadata
     ;;
+    ;; All processes in this tree share state in the extended-info
+    ;; plist, which is passed to both the functions that create the
+    ;; async task specs and all the callbacks.  When initiating the
+    ;; compilation, extended-info is populated with the following
+    ;; keys:
+    ;;
+    ;; :processor       One of the keys (processing methods) in
+    ;;                  `org-latex-preview-process-alist', such as
+    ;;                  dvipng, dvisvgm or imagemagick.
+    ;;
+    ;; :latex-processor LaTeX compiler in use, see `org-latex-compilers'
+    ;; :latex-header    LaTeX preamble for compilation
+    ;;
+    ;; All keys from the corresponding entry of
+    ;; org-latex-preview-process-alist, which see:
+    ;; :programs, :description, :message, :image-input-type, :image-output-type
+    ;; :latex-compiler, :image-converter, :transparent-image-converter,
+    ;; :post-clean
+    ;;
+    ;; :org-buffer      Buffer from which preview is dispatched, not
+    ;;                  necessarily an Org mode buffer.
+    ;; :texfile         LaTeX file path for preview generation
+    ;; :place-preview-p Whether previews should be placed in the buffer
+    ;; :cache-location  Where to store preview images
+    ;; :start-time      Compilation process start time
+    ;; :appearance-options Preview image size, scale and other
+    ;;                     options, see `org-latex-preview-appearance-options'
+    ;; :proc-buffers    List of process buffers created when running
+    ;;                  the tree
+    ;; :fragments  List of fragment information plists, see FRAGMENT-INFO
+    ;;             Each fragment plist has the keys
+    ;;             :string  fragment contents
+    ;;             :overlay overlay placed over fragment region
+    ;;             :key     hash of fragment contents and compilation settings
+    ;;
+    ;; The following keys are added when processing the outputs:
+    ;;
+    ;; :fontsize    Fontsize as reported by preview.sty
+    ;; :tightpage   Margin information (for cropping by the :image-converter)
+    ;;              as reported by preview.sty
+    ;;
+    ;;  Additionally, the following keys are added to each fragment in
+    ;;  :fragments
+    ;;
+    ;;  :errors     LaTeX or :image-converter errors for the fragment
+    ;;  :path       Path to generated preview image
+    ;;  :height     Height of image (em units)
+    ;;  :width      Width of image (em units)
+    ;;  :depth      Depth below baseline
     (let* ((cache-location org-latex-preview-cache) ; Save the current value
            (extended-info
             (append processing-info
