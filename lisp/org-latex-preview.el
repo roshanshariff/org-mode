@@ -2753,7 +2753,9 @@ fragments are regenerated."
         (org-latex-preview--create-image-async
          (plist-get extended-info :processor)
          (cdr fragments)
+         :latex-processor (plist-get extended-info :latex-processor)
          :latex-preamble (plist-get extended-info :latex-header)
+         :appearance-options (plist-get extended-info :appearance-options)
          :place-preview-p (plist-get extended-info :place-preview-p))
         (setq fragments nil)))))
 
@@ -2808,7 +2810,8 @@ fragments in EXTENDED-INFO."
       ;; as it is currently known to cause issues.
       (save-excursion
         (goto-char (point-min))
-        (when (if (and org-latex-preview-process-precompile
+        (when (if (and (buffer-local-value 'org-latex-preview-process-precompile
+                                           (plist-get extended-info :org-buffer))
                        (re-search-forward "^PRELOADED FILES:" nil t))
                   (re-search-forward "^ *hyperref\\.sty" nil t)
                 (re-search-forward "^(.*hyperref/hyperref\\.sty" nil t))
@@ -2973,7 +2976,6 @@ tests with the output of dvisvgm."
         ;; `image-file-handler') from being called.
         (file-name-handler-alist nil)
         (path (plist-get svg-fragment :path)))
-    (org-latex-preview--await-fragment-existance svg-fragment)
     (when path
       (catch 'svg-exists
         (dotimes (_ 1000)           ; Check for svg existance over 1s.
