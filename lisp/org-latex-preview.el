@@ -2721,7 +2721,7 @@ fragments are regenerated."
         (cache-location (plist-get extended-info :cache-location)))
     (while (cdr fragments)
       (if (or (plist-get (cadr fragments) :path)
-              (plist-get (cadr fragments) :error))
+              (plist-get (cadr fragments) :errors))
           (setq fragments (cdr fragments))
         ;; If output ends prematurely, this is most likely due to an issue with
         ;; the last "succesfully" produced fragment, and so we mark it as erronious
@@ -2935,8 +2935,8 @@ EXTENDED-INFO, and displayed in the buffer."
           (plist-put fragment-info :path (match-string 1))
           (when (save-excursion
                   (re-search-forward "^  page is empty" end t))
-            (unless (plist-get fragment-info :error)
-              (plist-put fragment-info :error "Image file not produced."))
+            (unless (plist-get fragment-info :errors)
+              (plist-put fragment-info :errors "Image file not produced."))
             (plist-put fragment-info :path nil))
           (push fragment-info fragments-to-show)
           (goto-char end)))
