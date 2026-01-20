@@ -414,8 +414,12 @@ The following values are supported:
 
 - nil: Do not generate previews for newly inserted fragments.
 
-Note that existing previews are always updated after the cursor
-moves out of them."
+Existing previews are always updated after the cursor moves out of them.
+
+Note: Insertion tracking does not work across indirect buffers.  LaTeX
+preview images are generated only for the current buffer, and not any
+indirect clones, or for the base buffer if the current buffer is a
+clone.  This is currently a limitation of the LaTeX preview system."
   :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type '(choice
@@ -1014,7 +1018,14 @@ shown.
 The availible contexts are:
 - inline, for inline LaTeX fragments
 - block, for LaTeX environments
-- edit-special, for `org-edit-special' buffers"
+- edit-special, for `org-edit-special' buffers
+
+Note: Live preview updates of the LaTeX fragment or environment being
+edited apply only in the current buffer, and not in any indirect clones.
+Previews of the same fragment in indirect buffers (or the base buffer if
+this is an indirect buffer) can thus go out of date.  Clear and
+regenerate previews manually in the indirect buffer to resolve this.
+This is currently a limitation of the LaTeX preview system."
   :group 'org-latex-preview
   :package-version '(Org . "10.0")
   :type '(choice
