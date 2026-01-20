@@ -789,11 +789,10 @@ If an org-latex-overlay is already present, nothing is done."
                    ((eq (org-element-type element) type))
                    (elem-beg (or (org-element-property :post-affiliated element)
                                  (org-element-property :begin element)))
-                   (elem-end (- (org-element-property :end element)
-                                (or (org-element-property :post-blank element) 0)
-                                (if (eq (char-before (org-element-property :end element))
-                                        ?\n)
-                                    1 0)))
+                   (elem-end (org-with-wide-buffer
+                               (goto-char (org-element-property :end element))
+                               (skip-chars-backward "\n\r\t ")
+                               (point)))
                    ((not (and (eq type 'latex-environment)
                               (save-excursion
                                 (goto-char elem-beg)
@@ -1631,11 +1630,10 @@ the number offsets will also be calculated, using PARSE-TREE if given."
     (dolist (element elements)
       (let ((beg (or (org-element-property :post-affiliated element)
                      (org-element-property :begin element)))
-            (end (- (org-element-property :end element)
-                    (or (org-element-property :post-blank element) 0)
-                    (if (eq (char-before (org-element-property :end element))
-                            ?\n)
-                        1 0)))
+            (end (org-with-wide-buffer
+                   (goto-char (org-element-property :end element))
+                   (skip-chars-backward "\n\r\t ")
+                   (point)))
             (content (org-element-property :value element)))
         (push (list beg end content) entries)
         (when numbering-table
@@ -3277,11 +3275,10 @@ the *entire* preview cache will be cleared, and `org-persist-gc' run."
       (dolist (element (org-latex-preview-collect-fragments beg end))
         (pcase-let* ((begin (or (org-element-property :post-affiliated element)
                                 (org-element-property :begin element)))
-                     (end (- (org-element-property :end element)
-                             (or (org-element-property :post-blank element) 0)
-                             (if (eq (char-before (org-element-property :end element))
-                                     ?\n)
-                                 1 0)))
+                     (end (org-with-wide-buffer
+                            (goto-char (org-element-property :end element))
+                            (skip-chars-backward "\n\r\t ")
+                            (point)))
                      (`(,fg ,bg) (org-latex-preview--colors-around begin end))
                      (value (org-element-property :value element))
                      (number (and numbering-table
