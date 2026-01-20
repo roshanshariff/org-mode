@@ -2330,7 +2330,7 @@ Returns a list of async tasks started."
 
 BUF is the process buffer, and EXTENDED-INFO contains the information
 needed to identify such previews."
-  (message "Creating LaTeX preview images failed (exit code %d). Please see %s for details"
+  (message "Creating LaTeX preview images failed (exit code %d). See buffer %s for details"
            exit-code
            (if (pcase (plist-get extended-info :processor)
                  ('dvisvgm (eq exit-code 252)) ; Input file does not exist.
@@ -2341,7 +2341,7 @@ needed to identify such previews."
                            (goto-char (point-min))
                            (search-forward ": No such file or directory" nil t))))))
                (propertize org-latex-preview--latex-log 'face 'warning)
-             (propertize org-latex-preview--image-log 'face 'warning)))
+             (propertize (buffer-name buf) 'face 'warning)))
   (with-current-buffer (plist-get extended-info :org-buffer)
     (cl-loop for fragment in (plist-get extended-info :fragments)
              for path = (plist-get fragment :path)
@@ -2581,13 +2581,11 @@ The path of the created LaTeX file is returned."
           :info extended-info
           :filter #'org-latex-preview--latex-preview-filter
           :failure
-          (lambda (exit-code _buf _info)
+          (lambda (exit-code buf _info)
             ;; With how preview.sty works, an exit code of 1 is expectd.
             (unless (eq exit-code 1)
-              (message "LaTeX compilation for preview failed (error code %d). Please see %s for details"
-                       exit-code
-                       (propertize org-latex-preview--latex-log
-                                   'face 'warning)))))))
+              (message "LaTeX compilation for preview failed (error code %d).  See buffer %s for details"
+                       exit-code (propertize (buffer-name buf) 'face 'warning)))))))
 
 (defun org-latex-preview--image-extract-async (extended-info)
   "Create an `org-async-call' spec to extract images according to EXTENDED-INFO."
@@ -2650,8 +2648,8 @@ The path of the created LaTeX file is returned."
           :buffer img-process-buffer
           :info extended-info
           :failure
-          (format "Creating LaTeX preview images failed (exit code %%d). Please see %s for details"
-                  (propertize org-latex-preview--image-log 'face 'warning)))))
+          (format "Creating LaTeX preview images failed (exit code %%d). See buffer %s for details"
+                  (propertize (buffer-name img-process-buffer) 'face 'warning)))))
 
 (defun org-latex-preview--cleanup-callback (_exit-code _stdout extended-info)
   "Schedule cleanup with EXTENDED-INFO."
