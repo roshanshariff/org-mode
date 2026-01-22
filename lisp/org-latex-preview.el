@@ -2247,6 +2247,14 @@ Returns a list of async tasks started."
     ;;   ├─ cache pngs with org-persist or in /tmp
     ;;   └─ update overlays in buffer with png images and metadata
     ;;
+    ;; Note that the image extraction processes run even if the tex
+    ;; compilation "fails".  This is because preview-latex can exit
+    ;; with code 1 even when the tex compilation succeeds in producing
+    ;; DVI output.  This is by preview.sty's design, and we
+    ;; accommodate it.
+    ;;
+    ;; -----
+    ;;
     ;; All processes in this tree share state in the extended-info
     ;; plist, which is passed to both the functions that create the
     ;; async task specs and all the callbacks.  When initiating the
