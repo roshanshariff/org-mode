@@ -2584,14 +2584,7 @@ The path of the created LaTeX file is returned."
               (setq buffer-undo-list t)
               (erase-buffer)
               (current-buffer))))
-         (tex-compile-command-fmt
-          (pcase (plist-get extended-info :latex-compiler)
-            ((and (pred stringp) cmd) cmd)
-            ((and (pred consp) cmds)
-             (when (> (length cmds) 1)
-               (warn "Preview :latex-compiler must now be a single command.  %S will be ignored."
-                     (cdr cmds)))
-             (car cmds))))
+         (tex-compile-commands-fmt (plist-get extended-info :latex-compiler))
          (texfile (plist-get extended-info :texfile))
          (org-tex-compiler
           (cdr (assoc (plist-get extended-info :latex-processor)
@@ -2602,9 +2595,10 @@ The path of the created LaTeX file is returned."
             (?f . ,(shell-quote-argument texfile))
             (?l . ,org-tex-compiler)
             (?L . ,(car (split-string org-tex-compiler)))))
-         (tex-formatted-command
-          (split-string-shell-command
-           (format-spec tex-compile-command-fmt tex-command-spec))))
+         (tex-formatted-commands
+          (mapcar (lambda (cmd) (split-string-shell-command
+                            (format-spec cmd tex-command-spec)))
+                  tex-compile-commands-fmt)))
     (unless org-tex-compiler
       (user-error "No `org-latex-preview-compiler-command-map' entry found for LaTeX processor %S, it should be a member of `org-latex-compilers' %S"
                   (plist-get extended-info :latex-processor)
@@ -2612,12 +2606,14 @@ The path of the created LaTeX file is returned."
     (with-current-buffer tex-process-buffer
       (erase-buffer)
       (insert "RUNNING: "
-              (format-spec tex-compile-command-fmt tex-command-spec)
+              (format-spec (car (last tex-compile-commands-fmt)) tex-command-spec)
               "\n")
       (add-text-properties (point-min) (1- (point))
                            '(face ((:height 0.8) font-lock-comment-face header-line))))
     (list 'org-async-task
-          tex-formatted-command
+          (if (cdr-safe tex-formatted-commands)
+              (cons 'org-async-chain tex-formatted-commands)
+            (car tex-formatted-commands))
           :buffer tex-process-buffer
           :info extended-info
           :filter #'org-latex-preview--latex-preview-filter
@@ -2673,7 +2669,12 @@ The path of the created LaTeX file is returned."
                     (expand-file-name
                      (concat texfile-base
                              "." (plist-get extended-info :image-input-type))
-                     temporary-file-directory)))))
+                     temporary-file-directory)))
+            (?O . ,(shell-quote-argument
+                    (concat (expand-file-name texfile-base temporary-file-directory)
+                            (pcase (plist-get extended-info :image-output-type)
+                              ("png" "-%09d.png")
+                              ("svg" "-%9p.svg")))))))
          (img-formatted-command
           (split-string-shell-command
            (format-spec img-extract-command img-command-spec))))

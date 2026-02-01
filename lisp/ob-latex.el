@@ -197,12 +197,12 @@ This function is called by `org-babel-execute-src-block'."
 			  (mapconcat #'identity headers "\n")))
                  (org-latex-preview-process-alist org-babel-latex-process-alist)
                  (cache-file (apply #'org-latex-preview-create-images body
-                                    :processing-type 'dvipng
+                                    :processing-type 'png
                                     (if in-buffer
                                         org-latex-preview-appearance-options
                                       org-html-latex-image-options))))
             (if (and cache-file (file-readable-p cache-file))
-                (copy-file cache-file out-file)
+                (copy-file cache-file out-file t)
               (error "Org babel latex failed: See buffers %s and %s"
                      org-latex-preview--latex-log org-latex-preview--image-log))))
 	 ((string= "svg" extension)
