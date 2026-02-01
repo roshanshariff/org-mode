@@ -452,13 +452,22 @@ A string will be run as a shell command, with
 the list of program arguments.  The process will be executed in DIR (if
 set) or `default-directory'.
 
-There is also a \"special form\" of PROC, namely a list where the
-first item is the symbol org-async-task, and the rest constitutes
-an argument list for `org-async-call'.  This form allows for easy
-specification of callbacks that are themselves async tasks, e.g.
+There are two \"special forms\" of PROC for common use cases:
+
+- A list where the first item is the symbol org-async-task, and the rest
+constitutes an argument list for `org-async-call'.  This form allows for
+easy specification of callbacks that are themselves async tasks, e.g.
   (org-async-call \\='(\"sleep 1\")
                    :success \\='(org-async-task (\"notify-send\" \"done\")))
 When using this form, all other arguments are ignored.
+
+- A list where the first item is the symbol org-async-chain, and the
+rest are processes to run in sequence until one of them fails.  Each
+process can be a string or list, with the meanings specified above.
+This form allows for easy specification of an async linear process
+chain.  In this case the SUCCESS and BUFFER arguments apply only to the
+final process in the chain, and the other arguments apply to all
+processes.
 
 `org-async-call' runs up to `org-async-process-limit' simultaneous
 processes, and queues up any additional ones.
@@ -560,6 +569,24 @@ call `org-async-wait-for' on the output result of `org-async-call':
    ((and (consp proc)
          (eq (car proc) 'org-async-task))
     (apply #'org-async-call (cdr proc)))
+   ;; Called with a task chain, form the correct spec
+   ((and (consp proc)
+         (eq (car proc) 'org-async-chain))
+    (let ((call-spec))
+      (dolist (spec (reverse (cdr proc)))
+        (setq call-spec
+              (list 'org-async-task spec
+                    :buffer (if call-spec t buffer)
+                    :info info
+                    :success (or call-spec success)
+                    :failure failure
+                    :filter filter
+                    :process-variables process-variables
+                    :timeout timeout
+                    :dir dir :coding coding)))
+      (setq call-spec (cdr call-spec)) ;remove org-async-task from first call
+      (when now (plist-put (cdr call-spec) :now now))
+      (apply #'org-async-call call-spec)))
    ;; Start the async process now.
    ((or now (< (length org-async--stack) org-async-process-limit))
     (let ((proc
