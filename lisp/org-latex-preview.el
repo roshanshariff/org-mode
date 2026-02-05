@@ -2676,10 +2676,12 @@ The path of the created LaTeX file is returned."
                              "." (plist-get extended-info :image-input-type))
                      temporary-file-directory)))
             (?O . ,(shell-quote-argument
-                    (concat (expand-file-name texfile-base temporary-file-directory)
-                            (pcase (plist-get extended-info :image-output-type)
-                              ("png" "-%09d.png")
-                              ("svg" "-%9p.svg")))))))
+                    (concat
+                     (expand-file-name texfile-base temporary-file-directory)
+                     (pcase (plist-get extended-info :processor)
+                       ((or 'dvipng 'imagemagick) "-%09d.png")
+                       ('dvisvgm "-%9p.svg")
+                       (_ (concat "." (plist-get extended-info :image-output-type)))))))))
          (img-formatted-command
           (split-string-shell-command
            (format-spec img-extract-command img-command-spec))))
