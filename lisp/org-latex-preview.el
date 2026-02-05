@@ -228,15 +228,20 @@ is required."
 (defcustom org-latex-preview-cache 'persist
   "Persist produced LaTeX previews across Emacs sessions.
 
-When non-nil, org-persist is used to cache the fragments and
-data.  Otherwise, a temporary directory is used for images and
-the data is stored in `org-latex-preview--table' for the duration
-of the Emacs session."
+It can be set to
+- the cache directory path (relative or absolute path, a string),
+- the symbol persist to cache using org-persist,
+- or the symbol temp to cache in a temporary directory.  In this case
+  the images will be accessible for the duration of the Emacs session
+  only.
+
+It may also be set to the symbol live, this is for tracking live updates
+and meant for internal use only."
   :group 'org-latex-preview
   :package-version '(Org . "9.7")
   :type '(choice (const :tag "Use org-mode's persistent cache system" persist)
-          (const :tag "Use the system temporary directory" temp)
-          (string :tag "Path to cache directory")))
+                 (const :tag "Use the system temporary directory" temp)
+                 (string :tag "Path to cache directory")))
 
 (defcustom org-latex-preview-persist-expiry 7
   "A homologue of `org-persist-default-expiry' for preview data.
