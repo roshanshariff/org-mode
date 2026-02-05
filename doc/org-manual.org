@@ -11667,6 +11667,12 @@ To enable automatic previews, turn on the minor mode
   LaTeX fragments will be auto-generated as they are typed or
   otherwise inserted into the buffer.
 
+  Note that insertion tracking does not work across indirect buffers.
+  LaTeX preview images are generated only for the current buffer, and
+  not any indirect clones, or for the base buffer if the current
+  buffer is a clone.  This is currently a limitation of the LaTeX
+  preview system.
+
   #+vindex: org-latex-preview-mode-display-live
   Additionally, if the option ~org-latex-preview-mode-display-live~ is
   non-nil, previews for modified or new LaTeX fragments will be
