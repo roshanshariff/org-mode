@@ -68,6 +68,15 @@ Additionally,
 Relevant options and commands can be found via =M-x customize-group=
 =org-latex-preview=, and in the Org manual.
 
+*** LaTeX previews now require the preview.sty LaTeX package or style file
+
+The new LaTeX preview system requires the preview.sty LaTeX package or
+style file to be available.  preview.sty is included by default with
+all commonly used TeX distributions.
+
+For information on preview.sty see
+https://ctan.org/tex-archive/macros/latex/contrib/preview?lang=en.
+
 *** ~org-store-link~ no longer asks to select store function when called noninteractively
 
 Previously, when multiple store functions are available to store link
