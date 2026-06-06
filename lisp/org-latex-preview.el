@@ -113,7 +113,6 @@ All available processes and theirs documents can be found in
   :package-version '(Org . "9.7")
   :type 'symbol)
 
-;;;###autoload
 (defcustom org-latex-preview-process-alist
     `((dvipng
        :programs ("latex" "dvipng")
